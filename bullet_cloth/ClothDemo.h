@@ -9,57 +9,63 @@
 #define PlatformDemoApplication GlutDemoApplication
 #endif
 
+#include "GLDebugDrawer.h"
+
 #include "LinearMath/btAlignedObjectArray.h"
 
-class btBroadphaseInterface;
+//
+#include "BulletFluids/Sph/btFluidSphSolver.h"
+
+#include "btFluidSoftRigidCollisionConfiguration.h"
+#include "btFluidSoftRigidDynamicsWorld.h"
+
 class btCollisionShape;
-class btOverlappingPairCache;
+class btBroadphaseInterface;
 class btCollisionDispatcher;
 class btConstraintSolver;
-struct btCollisionAlgorithmCreateFunc;
 class btDefaultCollisionConfiguration;
+
+class btFluidSoftRigidDynamicsWorld;
 
 class ClothDemo : public PlatformDemoApplication
 {
-
-    //keep the collision shapes, for deletion/cleanup
-    btAlignedObjectArray<btCollisionShape*>	m_collisionShapes;
-
-    btBroadphaseInterface*	m_broadphase;
-
-    btCollisionDispatcher*	m_dispatcher;
-
+    btAlignedObjectArray<btCollisionShape*>	m_collisionShapes;	//Keep the collision shapes, for deletion/cleanup
+    btBroadphaseInterface* m_broadphase;
+    btCollisionDispatcher* m_dispatcher;
     btConstraintSolver*	m_solver;
-
     btDefaultCollisionConfiguration* m_collisionConfiguration;
+
+    btFluidSoftRigidDynamicsWorld* m_fluidSoftRigidWorld;
+    btFluidSph* m_fluidSph;
+
+    btFluidSphSolver* m_fluidSphSolver;
+
+    GLDebugDrawer m_debugDrawer;
 
 public:
 
-    ClothDemo()
-    {
-    }
-    virtual ~ClothDemo()
-    {
-        exitPhysics();
-    }
-    void	initPhysics();
+    ClothDemo();
+    virtual ~ClothDemo();
 
-    void	exitPhysics();
+    void initPhysics();		//Initialize Bullet/fluid system here
+    void exitPhysics();		//Deactivate Bullet/fluid system here
 
-    virtual void clientMoveAndDisplay();
+    //
+    virtual void clientMoveAndDisplay();	//Simulation is updated/stepped here
+    virtual void displayCallback();			//Rendering occurs here
 
-    virtual void displayCallback();
-    virtual void	clientResetScene();
+    //
+    virtual void keyboardCallback(unsigned char key, int x, int y);
+    virtual void specialKeyboard(int key, int x, int y);
+    virtual void setShootBoxShape();
+    virtual void clientResetScene();
 
     static DemoApplication* Create()
     {
         ClothDemo* demo = new ClothDemo;
         demo->myinit();
-        demo->initPhysics();
         return demo;
     }
-
-
 };
 
 #endif //Cloth_DEMO_H

@@ -21,10 +21,25 @@
     <ClCompile Include="ClothDemo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="btFluidSoftRigidCollisionConfiguration.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="btFluidSoftRigidDynamicsWorld.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClothDemo.h">
       <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FluidSoftInteraction.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="btFluidSoftRigidCollisionConfiguration.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="btFluidSoftRigidDynamicsWorld.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

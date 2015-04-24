@@ -83,11 +83,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="btFluidSoftRigidCollisionConfiguration.cpp" />
+    <ClCompile Include="btFluidSoftRigidDynamicsWorld.cpp" />
     <ClCompile Include="ClothDemo.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="btFluidSoftRigidCollisionConfiguration.h" />
+    <ClInclude Include="btFluidSoftRigidDynamicsWorld.h" />
     <ClInclude Include="ClothDemo.h" />
+    <ClInclude Include="FluidSoftInteraction.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
