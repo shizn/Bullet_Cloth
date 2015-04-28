@@ -6,7 +6,44 @@
 #include "BulletCollision/CollisionShapes/btSphereShape.h"
 #include "BulletSoftBody/btSoftBodyInternals.h"
 #include "BulletFluids/Sph/btFluidSph.h"
+static bool resolveFuildSoftContactNode(btVector3& aa, btVector3& bb, btVector3& cc, btVector3& pp)
+{
+    btVector3 v0 = cc - aa;     //AC
+    btVector3 v1 = bb - aa;     //AB
+    btVector3 v2 = pp - aa;     //AP
 
+    if (v0.isZero() || v1.isZero() || v2.isZero())
+    {
+        return false;
+    }
+    btVector3 cro01 = btCross(v0, v1);
+    btScalar coplanr = btDot(cro01, v2);
+    //if the four point coplanar
+    if (coplanr != 0.0f)
+    {
+        return false;
+    }
+    btScalar dot00 = btDot(v0, v0); 
+    btScalar dot01 = btDot(v0, v1); 
+    btScalar dot02 = btDot(v0, v2); 
+    btScalar dot11 = btDot(v1, v1);
+    btScalar dot12 = btDot(v1, v2); 
+
+    btScalar inverDeno = 1.0 / (dot00 * dot11 - dot01 *dot01);
+    btScalar u = (dot11 * dot02 - dot01 * dot12) * inverDeno;
+    if (u < 0 || u > 1) // if u out of range, return directly
+    {
+        return false;
+    }
+
+    float v = (dot00 * dot12 - dot01 * dot02) * inverDeno;
+    if (v < 0 || v > 1) // if v out of range, return directly
+    {
+        return false;
+    }
+
+    return u + v <= 1;
+}
 static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG, btFluidSph* fluid, int sphParticleIndex,
 									btSoftBody::Cluster* softCluster, const btVector3& normalOnSoftBody, 
 									const btVector3&pointOnSoftBody, btScalar distance)
@@ -37,7 +74,7 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
 		btScalar positionError = (-distance) * (FG.m_simulationScale/FG.m_timeStep) * FL.m_boundaryErp;
 		btVector3 particleImpulse = -(penetratingVelocity + (-normalOnSoftBody*positionError) + tangentialVelocity*FL.m_boundaryFriction);
 		
-		const bool APPLY_IMPULSE_TO_SOFT_BODY = true;
+        const bool APPLY_IMPULSE_TO_SOFT_BODY = true;
 		if(APPLY_IMPULSE_TO_SOFT_BODY)
 		{
 			btScalar inertiaParticle = btScalar(1.0) / FL.m_particleMass;
@@ -51,22 +88,65 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
 			
 			//	Apply the impulse to all nodes(vertices) in the soft body cluster
 			//	this is incorrect, but sufficient for demonstration purposes
+            /*
 			btVector3 perNodeImpulse = worldScaleImpulse / static_cast<btScalar>( softCluster->m_nodes.size() );
 			perNodeImpulse /= FG.m_timeStep;		//Impulse is accumulated as force
 			
-			for(int i = 0; i < softCluster->m_nodes.size(); ++i)
+			for(int j = 0; j < softCluster->m_nodes.size(); ++j)
 			{
-				btSoftBody::Node* node = softCluster->m_nodes[i];
+				btSoftBody::Node* node = softCluster->m_nodes[j];
 				node->m_f += perNodeImpulse;
 			}
-			
-			
+			*/
+
+            // ssxx
+            // Try Apply the impulse to the correct vertices in the soft body cluster
+            
+            static int xx = 0;
+            static int yy = 0;
+            for (int j = 0; j < softCluster->m_nodes.size(); j = j + 3)
+            {
+                int size = softCluster->m_nodes.size();
+                btVector3 aa = softCluster->m_nodes[j]->m_x;
+                btVector3 bb = softCluster->m_nodes[j + 1]->m_x;
+                btVector3 cc = softCluster->m_nodes[j + 2]->m_x;
+                btVector3 pp = pointOnSoftBody;
+                
+                if (resolveFuildSoftContactNode(aa, bb, cc, pp))
+                {
+                    btVector3 perNodeImpulse = worldScaleImpulse / 3.0;
+                    perNodeImpulse /= FG.m_timeStep;
+                    softCluster->m_nodes[j]->m_f += perNodeImpulse;
+                    softCluster->m_nodes[j + 1]->m_f += perNodeImpulse;
+                    softCluster->m_nodes[j + 2]->m_f += perNodeImpulse;
+                    //absorb
+                    if (softCluster->m_nodes[j]->m_absorb < 9)
+                    {
+                        softCluster->m_nodes[j]->m_absorb += 1;
+                    }
+                    /*
+                    if (softCluster->m_nodes[j + 1]->m_absorb < 9)
+                    {
+                        softCluster->m_nodes[j + 1]->m_absorb += 1;
+                    }
+                    if (softCluster->m_nodes[j + 2]->m_absorb < 9)
+                    {
+                        softCluster->m_nodes[j + 2]->m_absorb += 1;
+                    }*/
+                    ++yy;
+                }
+                ++xx;
+            }
+            
+            // ssxx
 			particleImpulse *= inertiaParticle;
 		}
         //ssxx
         const bool APPLY_TWO_WAY_ABSORBPTION = true;
         if (APPLY_TWO_WAY_ABSORBPTION)
         {
+            fluid->markParticleForRemoval(i);
+            /*
             for (int j = 0; j < softCluster->m_nodes.size(); ++j)
             {
                 //penetratingMagnitude can be considered as absorb speed
@@ -74,10 +154,13 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
                 btScalar cMass = 1.0 / (node->m_im);
                 btScalar allMass = cMass + FL.m_particleMass;
                 //delete the particle
-                if (allMass < 0.1f)
+                if (allMass < 0.01f)
                 {
                     fluid->markParticleForRemoval(i);
                     node->m_im = 1.0 / allMass;
+                    //m_absorb to record the absorbed particle numbers
+                    //if (node->m_absorb <=6)
+                    //    node->m_absorb += 1;
                 }
                 else
                 {
@@ -85,18 +168,20 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
                 }
 
             }
+            */
  
         }
         //ssxx
-		
-		
-		btVector3& vel = particles.m_vel[i];
-		btVector3& vel_eval = particles.m_vel_eval[i];
-		
-		//Leapfrog integration
-		btVector3 velNext = vel + particleImpulse;
-		vel_eval = (vel + velNext) * btScalar(0.5);
-		vel = velNext;
+        else
+        {
+            btVector3& vel = particles.m_vel[i];
+            btVector3& vel_eval = particles.m_vel_eval[i];
+
+            //Leapfrog integration
+            btVector3 velNext = vel + particleImpulse;
+            vel_eval = (vel + velNext) * btScalar(0.5);
+            vel = velNext;
+        }
 	}
 }
 
@@ -213,7 +298,66 @@ struct FluidSoftInteractor
 		fluidSoftCollider.m_fluidSph = fluidSph;
 		fluidSoftCollider.m_softBody = softBody;
 		fluidSoftCollider.m_particleObject = &particleObject;
-		
+        int sum0 = 0;
+        int sum1 = 0;
+        int sum2 = 0;
+        int sum3 = 0;
+        int sum4 = 0;
+        int sum5 = 0;
+        int sum6 = 0;
+        int sum7 = 0;
+        int sum8 = 0;
+        int sum9 = 0;
+        for (int i = 0; i < softBody->m_nodes.size(); ++i)
+        {
+            int curr = softBody->m_nodes[i].m_absorb;
+            switch (curr)
+            {
+            case 0:
+                ++sum0;
+                break;
+            case 1:
+                ++sum1;
+                break;
+            case 2:
+                ++sum2;
+                break;
+            case 3:
+                ++sum3;
+                break;
+            case 4:
+                ++sum4;
+                break;
+            case 5:
+                ++sum5;
+                break;
+            case 6:
+                ++sum6;
+                break;
+            case 7:
+                ++sum7;
+                break;
+            case 8:
+                ++sum8;
+                break;
+            case 9:
+                ++sum9;
+                break;
+            default:
+                break;
+            }
+
+        }
+        printf("Sum0 %d\n", sum0);
+        printf("Sum1 %d\n", sum1);
+        printf("Sum2 %d\n", sum2);
+        printf("Sum3 %d\n", sum3);
+        printf("Sum4 %d\n", sum4);
+        printf("Sum5 %d\n", sum5);
+        printf("Sum6 %d\n", sum6);
+        printf("Sum7 %d\n", sum7);
+        printf("Sum8 %d\n", sum8);
+        printf("Sum9 %d\n", sum9);
 		//Call FluidSphSoftBodyCollisionCallback::processParticles() for
 		//each SPH fluid grid cell intersecting with the soft body's AABB
 		grid.forEachGridCell(expandedSoftMin, expandedSoftMax, fluidSoftCollider);
@@ -228,9 +372,6 @@ struct FluidSoftInteractor
 		{
 			btFluidSph* fluidSph = fluids[i];
 			if( !fluidSph->numParticles() ) continue;
-			//ssxx
-            fluidSph->removeMarkedParticles();
-            //ssxx
 			btVector3 fluidAabbMin, fluidAabbMax;
 			fluidSph->getAabb(fluidAabbMin, fluidAabbMax);
 			
@@ -239,7 +380,7 @@ struct FluidSoftInteractor
 				btSoftBody* softBody = softBodies[n];
 				btVector3 softAabbMin, softAabbMax;
 				softBody->getAabb(softAabbMin, softAabbMax);
-			
+			    
 				if( TestAabbAgainstAabb2(fluidAabbMin, fluidAabbMax, softAabbMin, softAabbMax) )
 					collideFluidSphWithSoftBody(FG, fluidSph, softBody, softAabbMin, softAabbMax);
 			}

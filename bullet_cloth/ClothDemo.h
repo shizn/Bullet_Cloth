@@ -18,6 +18,8 @@
 
 #include "btFluidSoftRigidCollisionConfiguration.h"
 #include "btFluidSoftRigidDynamicsWorld.h"
+//#include "MarchingCubes.h"
+//#include "ScreenSpaceFluidRendererGL.h"
 
 class btCollisionShape;
 class btBroadphaseInterface;
@@ -26,6 +28,15 @@ class btConstraintSolver;
 class btDefaultCollisionConfiguration;
 
 class btFluidSoftRigidDynamicsWorld;
+
+enum FluidRenderMode
+{
+    FRM_Points = 0,
+    FRM_MediumSpheres,
+    FRM_LargeSpheres,
+    FRM_ScreenSpace,
+    FRM_MarchingCubes
+};
 
 class ClothDemo : public PlatformDemoApplication
 {
@@ -40,6 +51,10 @@ class ClothDemo : public PlatformDemoApplication
 
     btFluidSphSolver* m_fluidSphSolver;
 
+    //Rendering
+    FluidRenderMode m_fluidRenderMode;
+    //ScreenSpaceFluidRendererGL* m_screenSpaceRenderer;
+
     GLDebugDrawer m_debugDrawer;
 
 public:
@@ -53,6 +68,8 @@ public:
     //
     virtual void clientMoveAndDisplay();	//Simulation is updated/stepped here
     virtual void displayCallback();			//Rendering occurs here
+
+    void renderFluids();
 
     //
     virtual void keyboardCallback(unsigned char key, int x, int y);

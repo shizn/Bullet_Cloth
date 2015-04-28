@@ -38,6 +38,7 @@ ClothDemo::ClothDemo()
     setTexturing(true);
     setShadows(true);
     setCameraDistance(50.0);
+    m_fluidRenderMode = FRM_Points;
 
     initPhysics();
 }
@@ -117,7 +118,7 @@ void ClothDemo::initPhysics()
         const btScalar POSITION_Y(10.0);
         const btScalar EXTENT(16.0);
 
-        const int RESOLUTION = 17;
+        const int RESOLUTION = 20;
 
 #ifndef USE_TUBE_MESH_FOR_SOFT_BODY		
         btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(), btVector3(-EXTENT, POSITION_Y, -EXTENT),
@@ -147,7 +148,9 @@ void ClothDemo::initPhysics()
         softBody->setTotalMass(2.0);
         softBody->generateBendingConstraints(2, material);
         softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
-
+        //ssxx draw flag
+        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
+        //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
 }
@@ -215,26 +218,35 @@ void ClothDemo::clientMoveAndDisplay()
     {
         static int counter = 0;
         static int fluidcounter = 0;
-        if (++counter > 1)
+        if (++counter > 100)
         {
             counter = 0;
             //ssxx
             //add fluids here
-            if (m_fluidSph && (++fluidcounter<500))
+            if (m_fluidSph && (++fluidcounter))
             {
                 emitParticle(m_fluidSph, btVector3(0.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
                 emitParticle(m_fluidSph, btVector3(0.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(0.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
+                //emitParticle(m_fluidSph, btVector3(1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                //emitParticle(m_fluidSph, btVector3(-1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
+                //emitParticle(m_fluidSph, btVector3(1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
+                //emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                //emitParticle(m_fluidSph, btVector3(0.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
+                //emitParticle(m_fluidSph, btVector3(1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
+                //emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
+            }
+
+
+            for (int i = 0; i < m_fluidSoftRigidWorld->getNumFluidSph(); ++i)
+            {
+                if (m_fluidSoftRigidWorld->getFluidSph(i)->numParticles()<2)
+                {
+                    emitParticle(m_fluidSph, btVector3(0.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                    emitParticle(m_fluidSph, btVector3(0.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
+                }
+                printf("m_fluidSoftRigidWorld->getFluidSph(%d)->numParticles(): %d \n", i, m_fluidSoftRigidWorld->getFluidSph(i)->numParticles());
             }
             //ssxx
-            for (int i = 0; i < m_fluidSoftRigidWorld->getNumFluidSph(); ++i)
-                printf("m_fluidSoftRigidWorld->getFluidSph(%d)->numParticles(): %d \n", i, m_fluidSoftRigidWorld->getFluidSph(i)->numParticles());
         }
     }
 
@@ -281,6 +293,11 @@ inline void drawSphere(GLuint glSphereList, const btVector3& position, float r, 
     glTranslatef(position.x(), position.y(), position.z());
     glCallList(glSphereList);
     glPopMatrix();
+}
+
+void ClothDemo::renderFluids()
+{
+
 }
 
 void ClothDemo::displayCallback(void)
