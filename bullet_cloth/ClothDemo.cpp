@@ -218,7 +218,7 @@ void ClothDemo::clientMoveAndDisplay()
     {
         static int counter = 0;
         static int fluidcounter = 0;
-        if (++counter > 100)
+        if (++counter > 10)
         {
             counter = 0;
             //ssxx
@@ -227,13 +227,13 @@ void ClothDemo::clientMoveAndDisplay()
             {
                 emitParticle(m_fluidSph, btVector3(0.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
                 emitParticle(m_fluidSph, btVector3(0.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
-                //emitParticle(m_fluidSph, btVector3(1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                //emitParticle(m_fluidSph, btVector3(-1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                //emitParticle(m_fluidSph, btVector3(1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
-                //emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                //emitParticle(m_fluidSph, btVector3(0.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                //emitParticle(m_fluidSph, btVector3(1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                //emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(0.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(1.0, 30.0, -1.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-1.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
             }
 
 

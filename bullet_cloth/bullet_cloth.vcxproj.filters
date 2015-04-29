@@ -27,11 +27,17 @@
     <ClCompile Include="btFluidSoftRigidDynamicsWorld.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MarchingCubes.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameBufferGL.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ScreenSpaceFluidRendererGL.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ClothDemo.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
     <ClInclude Include="FluidSoftInteraction.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -42,6 +48,18 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="tubeTriangleMesh.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameBufferGL.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MarchingCubes.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ClothDemo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ScreenSpaceFluidRendererGL.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

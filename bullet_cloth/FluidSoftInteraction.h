@@ -101,9 +101,6 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
 
             // ssxx
             // Try Apply the impulse to the correct vertices in the soft body cluster
-            
-            static int xx = 0;
-            static int yy = 0;
             for (int j = 0; j < softCluster->m_nodes.size(); j = j + 3)
             {
                 int size = softCluster->m_nodes.size();
@@ -123,26 +120,28 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
                     if (softCluster->m_nodes[j]->m_absorb < 9)
                     {
                         softCluster->m_nodes[j]->m_absorb += 1;
-                    }
-                    /*
-                    if (softCluster->m_nodes[j + 1]->m_absorb < 9)
+                        fluid->markParticleForRemoval(i);
+                    }               
+                    else if (softCluster->m_nodes[j + 1]->m_absorb < 9)
                     {
                         softCluster->m_nodes[j + 1]->m_absorb += 1;
+                        fluid->markParticleForRemoval(i);
                     }
-                    if (softCluster->m_nodes[j + 2]->m_absorb < 9)
+                    else if(softCluster->m_nodes[j + 2]->m_absorb < 9)
                     {
                         softCluster->m_nodes[j + 2]->m_absorb += 1;
-                    }*/
-                    ++yy;
+                        fluid->markParticleForRemoval(i);
+                    }
+                    else
+                    {
+                    }
                 }
-                ++xx;
-            }
-            
+            }       
             // ssxx
 			particleImpulse *= inertiaParticle;
 		}
         //ssxx
-        const bool APPLY_TWO_WAY_ABSORBPTION = true;
+        const bool APPLY_TWO_WAY_ABSORBPTION = false;
         if (APPLY_TWO_WAY_ABSORBPTION)
         {
             fluid->markParticleForRemoval(i);
@@ -298,6 +297,7 @@ struct FluidSoftInteractor
 		fluidSoftCollider.m_fluidSph = fluidSph;
 		fluidSoftCollider.m_softBody = softBody;
 		fluidSoftCollider.m_particleObject = &particleObject;
+        //ssxx debug
         int sum0 = 0;
         int sum1 = 0;
         int sum2 = 0;
@@ -358,6 +358,8 @@ struct FluidSoftInteractor
         printf("Sum7 %d\n", sum7);
         printf("Sum8 %d\n", sum8);
         printf("Sum9 %d\n", sum9);
+        //ssxx debug
+
 		//Call FluidSphSoftBodyCollisionCallback::processParticles() for
 		//each SPH fluid grid cell intersecting with the soft body's AABB
 		grid.forEachGridCell(expandedSoftMin, expandedSoftMax, fluidSoftCollider);
@@ -380,7 +382,6 @@ struct FluidSoftInteractor
 				btSoftBody* softBody = softBodies[n];
 				btVector3 softAabbMin, softAabbMax;
 				softBody->getAabb(softAabbMin, softAabbMax);
-			    
 				if( TestAabbAgainstAabb2(fluidAabbMin, fluidAabbMax, softAabbMin, softAabbMax) )
 					collideFluidSphWithSoftBody(FG, fluidSph, softBody, softAabbMin, softAabbMax);
 			}
