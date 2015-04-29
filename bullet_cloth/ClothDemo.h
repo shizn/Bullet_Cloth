@@ -1,6 +1,10 @@
 #ifndef CLOTH_DEMO_H
 #define CLOTH_DEMO_H
 
+
+//Depending on platform, may '#include <GL/glew.h>', which must be included before <GL/gl.h>
+#include "ScreenSpaceFluidRendererGL.h"	
+
 #ifdef _WINDOWS
 #include "Win32DemoApplication.h"
 #define PlatformDemoApplication Win32DemoApplication
@@ -9,7 +13,8 @@
 #define PlatformDemoApplication GlutDemoApplication
 #endif
 
-#include "GLDebugDrawer.h"
+
+#include "MarchingCubes.h"
 
 #include "LinearMath/btAlignedObjectArray.h"
 
@@ -18,8 +23,7 @@
 
 #include "btFluidSoftRigidCollisionConfiguration.h"
 #include "btFluidSoftRigidDynamicsWorld.h"
-//#include "MarchingCubes.h"
-//#include "ScreenSpaceFluidRendererGL.h"
+#include "GLDebugDrawer.h"
 
 class btCollisionShape;
 class btBroadphaseInterface;
@@ -40,12 +44,14 @@ enum FluidRenderMode
 
 class ClothDemo : public PlatformDemoApplication
 {
+    //Bullet
     btAlignedObjectArray<btCollisionShape*>	m_collisionShapes;	//Keep the collision shapes, for deletion/cleanup
     btBroadphaseInterface* m_broadphase;
     btCollisionDispatcher* m_dispatcher;
     btConstraintSolver*	m_solver;
     btDefaultCollisionConfiguration* m_collisionConfiguration;
 
+    //Fluid system
     btFluidSoftRigidDynamicsWorld* m_fluidSoftRigidWorld;
     btFluidSph* m_fluidSph;
 
@@ -53,7 +59,7 @@ class ClothDemo : public PlatformDemoApplication
 
     //Rendering
     FluidRenderMode m_fluidRenderMode;
-    //ScreenSpaceFluidRendererGL* m_screenSpaceRenderer;
+    ScreenSpaceFluidRendererGL* m_screenSpaceRenderer;
 
     GLDebugDrawer m_debugDrawer;
 
