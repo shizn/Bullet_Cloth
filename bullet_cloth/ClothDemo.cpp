@@ -38,12 +38,15 @@ ClothDemo::ClothDemo()
     setTexturing(true);
     setShadows(true);
     setCameraDistance(50.0);
-    m_fluidRenderMode = FRM_Points;
+    m_fluidRenderMode = FRM_ScreenSpace;
+
+    m_screenSpaceRenderer = 0;
 
     initPhysics();
 }
 ClothDemo::~ClothDemo()
 {
+    if (m_screenSpaceRenderer) delete m_screenSpaceRenderer;
     exitPhysics();
 }
 
@@ -98,13 +101,16 @@ void ClothDemo::initPhysics()
 
             const btScalar AABB_EXTENT(25.0);
             FL.m_aabbBoundaryMin = btVector3(-AABB_EXTENT, -AABB_EXTENT, -AABB_EXTENT);
-            FL.m_aabbBoundaryMax = btVector3(AABB_EXTENT, AABB_EXTENT*btScalar(100.0), AABB_EXTENT);
+            //FL.m_aabbBoundaryMax = btVector3(AABB_EXTENT, AABB_EXTENT*btScalar(100.0), AABB_EXTENT);
+            FL.m_aabbBoundaryMax = btVector3(AABB_EXTENT, AABB_EXTENT, AABB_EXTENT);
             FL.m_enableAabbBoundary = 1;
 
             //FL.m_particleMass = btScalar(0.0001);	//Mass of particles when colliding with rigid/soft bodies; def 0.00020543
             //FL.m_boundaryErp = btScalar(0.375);	//Increase m_boundaryErp to reduce penetration at the cost of increased jitter; def 0.0375
 
             fluidSph->setLocalParameters(FL);
+
+
         }
 
         const bool ENABLE_CCD = true;
@@ -112,6 +118,7 @@ void ClothDemo::initPhysics()
 
         m_fluidSoftRigidWorld->addFluidSph(fluidSph);
         m_fluidSph = fluidSph;
+
     }
     //Create a soft-body cloth patch
     {
@@ -150,6 +157,7 @@ void ClothDemo::initPhysics()
         softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
         //ssxx draw flag
         m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
+        softBody->m_faces[30].m_absorb = 10.0;
         //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
@@ -239,14 +247,25 @@ void ClothDemo::clientMoveAndDisplay()
 
             for (int i = 0; i < m_fluidSoftRigidWorld->getNumFluidSph(); ++i)
             {
-                if (m_fluidSoftRigidWorld->getFluidSph(i)->numParticles()<2)
-                {
-                    emitParticle(m_fluidSph, btVector3(0.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                    emitParticle(m_fluidSph, btVector3(0.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
-                }
+                //if (m_fluidSoftRigidWorld->getFluidSph(i)->numParticles()<2)
+                //{
+                //    emitParticle(m_fluidSph, btVector3(0.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                //    emitParticle(m_fluidSph, btVector3(0.0, 30.0, 1.0), btVector3(0.0, -1.0, 0.0));
+                //}
                 printf("m_fluidSoftRigidWorld->getFluidSph(%d)->numParticles(): %d \n", i, m_fluidSoftRigidWorld->getFluidSph(i)->numParticles());
             }
             //ssxx
+        }
+        {
+            /*
+            static int i = 0;
+            if (i>10)
+            {
+                processClothDiffusion();
+                i = 0;
+            }
+            i++;
+            */
         }
     }
 
@@ -295,9 +314,281 @@ inline void drawSphere(GLuint glSphereList, const btVector3& position, float r, 
     glPopMatrix();
 }
 
+void getFluidColors(bool drawFluidsWithMultipleColors, int fluidIndex, btFluidSph* fluid, int particleIndex, float* out_r, float* out_g, float* out_b)
+{
+    const float COLOR_R = 0.3f;
+    const float COLOR_G = 0.7f;
+    const float COLOR_B = 1.0f;
+
+    if (!drawFluidsWithMultipleColors)
+    {
+        float brightness = fluid->getVelocity(particleIndex).length() * 2.0f;
+        if (brightness < 0.f)brightness = 0.f;
+        if (brightness > 1.f)brightness = 1.f;
+
+        const float MIN_BRIGHTNESS(0.15f);
+        brightness = brightness * (1.0f - MIN_BRIGHTNESS) + MIN_BRIGHTNESS;
+
+        *out_r = COLOR_R * brightness;
+        *out_g = COLOR_G * brightness;
+        *out_b = COLOR_B * brightness;
+    }
+    else
+    {
+        *out_r = COLOR_R;
+        *out_g = COLOR_G;
+        *out_b = COLOR_B;
+
+        if (fluidIndex % 2)
+        {
+            *out_r = 1.0f - COLOR_R;
+            *out_g = 1.0f - COLOR_G;
+            *out_b = 1.0f - COLOR_B;
+        }
+    }
+}
+void ClothDemo::processClothDiffusion()
+{
+    const int ENABLE_DIFFUSION = true;
+    if (ENABLE_DIFFUSION)
+    {
+        btAlignedObjectArray<btSoftBody*> softBodies = m_fluidSoftRigidWorld->getSoftBodyArray();
+        for (int i = 0; i < softBodies.size(); ++i)
+        {
+            //For each soft body, Process diffusion.
+            btSoftBody* softbody = softBodies[i];
+            //printf("softbody 349 %x\n", softbody);
+            for (int j = 0; j < softbody->m_faces.size(); ++j)
+            {
+                btSoftBody::Face& f = softbody->m_faces[j];
+                f.m_diffuse = 0;
+                f.m_deltaabsorb = 0;
+            }
+            for (int j = 0; j < softbody->m_faces.size(); ++j)
+            {
+                btSoftBody::Face& f = softbody->m_faces[j];
+                //if (f.m_absorb > 0)
+                {
+                    // If it has absorbed mass, process diffusion
+                    // Get neighboring triangle
+                    btSoftBody::Node* node[3] = { f.m_n[0], f.m_n[1], f.m_n[2] };
+                    btAlignedObjectArray<btSoftBody::Face*> neighFaces;
+                    btScalar kdiffusion = 0.1;
+                    for (int n = 0; n < softbody->m_faces.size(); ++n)
+                    {
+                        btSoftBody::Face& neighF = softbody->m_faces[n];
+                        int c = 0;
+                        for (int k = 0; k < 3; ++k)
+                        {
+                            if (neighF.m_n[k] == node[0]||
+                                neighF.m_n[k] == node[1]||
+                                neighF.m_n[k] == node[2])
+                            {
+                                //c |= 1 << k;
+                                c++;
+                            }
+                        }
+                        if (2==c)
+                        {
+                            //Here we get a neighboring triangle, sharing a edge
+                            //Diffusion start
+                            neighFaces.push_back(&neighF);
+                            neighF.m_deltadiffuse = min(0, kdiffusion*(f.m_absorb - neighF.m_absorb));
+                            f.m_diffuse += neighF.m_deltadiffuse;
+                        }
+                    }
+                    btScalar normfactor = 0.0;
+                    if (f.m_diffuse > f.m_absorb)
+                    {
+                        normfactor = f.m_absorb / f.m_diffuse;
+                    }
+                    else
+                    {
+                        normfactor = 1.0;
+                    }
+                    for (int p = 0; p < neighFaces.size(); ++p)
+                    {
+                        //Compute change in saturation 
+                        f.m_deltaabsorb = f.m_deltaabsorb - normfactor* neighFaces[p]->m_deltadiffuse;
+                        neighFaces[p]->m_deltaabsorb = neighFaces[p]->m_deltaabsorb + normfactor*neighFaces[p]->m_deltadiffuse *(f.m_ra / neighFaces[p]->m_ra);
+                        //printf("neighFaces[%d] = %f\n", p, neighFaces[p]->m_diffuse);
+                    }                  
+                    for (int x = 0; x < softbody->m_faces.size(); ++x)
+                    {
+                        btSoftBody::Face& fx = softbody->m_faces[x];
+                        if (0 != fx.m_deltaabsorb)
+                        {
+                            //printf("fx.m_deltaabsorb[%d] = %f\n", x, fx.m_deltaabsorb);
+                        }
+                    }       
+                    
+                }
+            }
+            //printf("softbody 415 %x\n", softbody);
+           // printf("m_diffuse[31] = %f\n", softbody->m_faces[31].m_diffuse);
+           // printf("m_diffuse[32] = %f\n", softbody->m_faces[32].m_diffuse);
+            for (int j = 0; j < softbody->m_faces.size(); ++j)
+            {
+                btSoftBody::Face& f = softbody->m_faces[j];
+                /*
+                if (0!= f.m_diffuse)
+                {
+                    printf("f.m_diffuse[%d] = %f\n", j, f.m_diffuse);
+                }
+                */
+                f.m_absorb += f.m_deltaabsorb;
+                
+                if (0 != f.m_absorb)
+                {
+                    //printf("f.m_absorb[%d] = %f\n", j, f.m_absorb);
+                }
+                
+            }
+        }
+
+    }
+}
 void ClothDemo::renderFluids()
 {
+    static bool areSpheresGenerated = false;
+    static GLuint glSmallSphereList;
+    static GLuint glMediumSphereList;
+    static GLuint glLargeSphereList;
+    if (!areSpheresGenerated)
+    {
+        const float PARTICLE_RADIUS = 1.0f;
 
+        areSpheresGenerated = true;
+        glSmallSphereList = generateSphereList(0.1f);
+        glMediumSphereList = generateSphereList(PARTICLE_RADIUS * 0.3f);
+        glLargeSphereList = generateSphereList(PARTICLE_RADIUS);
+    }
+
+    bool drawFluidsWithMultipleColors = false;
+
+    if (m_fluidRenderMode != FRM_MarchingCubes && m_fluidRenderMode != FRM_ScreenSpace)
+    {
+        //BT_PROFILE("Draw fluids - spheres");
+
+        GLuint glSphereList;
+        switch (m_fluidRenderMode)
+        {
+        case FRM_LargeSpheres:
+            glSphereList = glLargeSphereList;
+            break;
+        case FRM_MediumSpheres:
+            glSphereList = glMediumSphereList;
+            break;
+        case FRM_Points:
+        default:
+            glSphereList = glSmallSphereList;
+            break;
+        }
+
+        //for (int i = 0; i < m_fluids.size(); ++i)
+        for (int n = 0; n < m_fluidSph->numParticles(); ++n)
+        {
+            float r, g, b;
+            getFluidColors(drawFluidsWithMultipleColors, 0, m_fluidSph, n, &r, &g, &b);
+
+            drawSphere(glSphereList, m_fluidSph->getPosition(n), r, g, b);
+        }
+    }
+    else if (m_fluidRenderMode == FRM_ScreenSpace)
+    {
+        //BT_PROFILE("Draw fluids - screen space");
+
+        if (m_screenSpaceRenderer)
+        {
+            if (m_ortho)
+            {
+                printf("Orthogonal rendering not implemented for ScreenSpaceFluidRendererGL.\n");
+                return;
+            }
+
+           // for (int i = 0; i < m_fluids.size(); ++i)
+           // {
+            const btFluidSphParametersLocal& FL = m_fluidSph->getLocalParameters();
+                btScalar particleRadius = FL.m_particleRadius;
+
+                float r = 0.5f;
+                float g = 0.8f;
+                float b = 1.0f;
+
+                //Beer's law constants
+                //Controls the darkening of the fluid's color based on its thickness
+                //For a constant k, (k > 1) == darkens faster; (k < 1) == darkens slower; (k == 0) == disable
+                float absorptionR = 2.5;
+                float absorptionG = 1.0;
+                float absorptionB = 0.5;
+
+                if (drawFluidsWithMultipleColors)
+                {
+                    r = 0.3f;
+                    g = 0.7f;
+                    b = 1.0f;
+                    if (1 % 2)
+                    {
+                        r = 1.0f - r;
+                        g = 1.0f - g;
+                        b = 1.0f - b;
+                    }
+
+                    absorptionR = 1.0;
+                    absorptionG = 1.0;
+                    absorptionB = 1.0;
+                }
+
+                m_screenSpaceRenderer->render(m_fluidSph->internalGetParticles().m_pos, particleRadius * 1.5f,
+                    r, g, b, absorptionR, absorptionG, absorptionB);
+           // }
+        }
+    }
+    else 	//(m_fluidRenderMode == FRM_MarchingCubes)
+    {
+        //BT_PROFILE("Draw fluids - marching cubes");
+
+        const int CELLS_PER_EDGE = 32;
+        static MarchingCubes* marchingCubes = 0;
+        if (!marchingCubes)
+        {
+            marchingCubes = new MarchingCubes;
+            marchingCubes->initialize(CELLS_PER_EDGE);
+        }
+
+        //for (int i = 0; i < m_fluids.size(); ++i)
+        //{
+        marchingCubes->generateMesh(*m_fluidSph);
+        const btAlignedObjectArray<float>& vertices = marchingCubes->getTriangleVertices();
+        if (vertices.size())
+        {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            float r = 0.4f;
+            float g = 0.4f;
+            float b = 0.9f;
+            if (drawFluidsWithMultipleColors)
+            {
+                r = 0.3f;
+                g = 0.7f;
+                b = 1.0f;
+                if (1 % 2)
+                {
+                    r = 1.0f - r;
+                    g = 1.0f - g;
+                    b = 1.0f - b;
+                }
+            }
+
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glColor4f(r, g, b, 0.6f);
+            glVertexPointer(3, GL_FLOAT, 0, &vertices[0]);
+            glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 3);
+            glDisableClientState(GL_VERTEX_ARRAY);
+        }
+        //}
+    }
 }
 
 void ClothDemo::displayCallback(void)
@@ -310,6 +601,9 @@ void ClothDemo::displayCallback(void)
 
     renderme();
 
+    renderFluids();
+
+    /*
     static bool areSpheresGenerated = false;
     static GLuint glLargeSphereList;
     static GLuint glSmallSphereList;
@@ -322,12 +616,13 @@ void ClothDemo::displayCallback(void)
         glLargeSphereList = generateSphereList(RADIUS);
     }
 
-    btIDebugDraw* debugDrawer = m_fluidSoftRigidWorld->getDebugDrawer();
+
 
     GLuint sphereList = glSmallSphereList;
     if (debugDrawer && !(debugDrawer->getDebugMode() & btIDebugDraw::DBG_DrawWireframe)) sphereList = glLargeSphereList;
 
     //Draw SPH particles
+    
     {
         for (int i = 0; i < m_fluidSoftRigidWorld->getNumFluidSph(); ++i)
         {
@@ -339,7 +634,8 @@ void ClothDemo::displayCallback(void)
             }
         }
     }
-
+    */
+    btIDebugDraw* debugDrawer = m_fluidSoftRigidWorld->getDebugDrawer();
     //Draw soft bodies
     if (debugDrawer && !(debugDrawer->getDebugMode() & btIDebugDraw::DBG_DrawWireframe))
     {
@@ -381,6 +677,14 @@ void ClothDemo::keyboardCallback(unsigned char key, int x, int y)
 {
     switch (key)
     {
+    case 'q':
+    {
+        int currentRenderMode = static_cast<int>(m_fluidRenderMode);
+        m_fluidRenderMode = static_cast<FluidRenderMode>(currentRenderMode + 1);
+
+        if (m_fluidRenderMode > FRM_MarchingCubes)m_fluidRenderMode = FRM_Points;
+        return;
+    }
     case ' ':
         clientResetScene();
         break;
@@ -458,6 +762,25 @@ void ClothDemo::setShootBoxShape()
         btBoxShape* box = new btBoxShape(btVector3(BOX_DIMENSIONS, BOX_DIMENSIONS, BOX_DIMENSIONS));
         box->initializePolyhedralFeatures();
         m_shootBoxShape = box;
+    }
+}
+
+void ClothDemo::myinit()
+{
+    DemoApplication::myinit();
+
+    //ScreenSpaceFluidRendererGL may initialize GLEW, which requires an existing OpenGL context
+    if (!m_screenSpaceRenderer) m_screenSpaceRenderer = new ScreenSpaceFluidRendererGL(m_glutScreenWidth, m_glutScreenHeight);
+}
+
+void ClothDemo::reshape(int w, int h)
+{
+    DemoApplication::reshape(w, h);
+
+    if (m_screenSpaceRenderer)
+    {
+        m_screenSpaceRenderer->setWindowResolution(w, h);
+        m_screenSpaceRenderer->setRenderingResolution(w, h);
     }
 }
 

@@ -76,11 +76,13 @@ public:
     virtual void displayCallback();			//Rendering occurs here
 
     void renderFluids();
-
+    void processClothDiffusion();
     //
     virtual void keyboardCallback(unsigned char key, int x, int y);
     virtual void specialKeyboard(int key, int x, int y);
     virtual void setShootBoxShape();
+    virtual void myinit();
+    virtual void reshape(int w, int h);
     virtual void clientResetScene();
 
     static DemoApplication* Create()

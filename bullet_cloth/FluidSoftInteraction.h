@@ -88,7 +88,7 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
 			
 			//	Apply the impulse to all nodes(vertices) in the soft body cluster
 			//	this is incorrect, but sufficient for demonstration purposes
-            /*
+            
 			btVector3 perNodeImpulse = worldScaleImpulse / static_cast<btScalar>( softCluster->m_nodes.size() );
 			perNodeImpulse /= FG.m_timeStep;		//Impulse is accumulated as force
 			
@@ -97,7 +97,7 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
 				btSoftBody::Node* node = softCluster->m_nodes[j];
 				node->m_f += perNodeImpulse;
 			}
-			*/
+			
 
             // ssxx
             // Try Apply the impulse to the correct vertices in the soft body cluster
@@ -111,26 +111,29 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
                 
                 if (resolveFuildSoftContactNode(aa, bb, cc, pp))
                 {
+                    
+                    /*
                     btVector3 perNodeImpulse = worldScaleImpulse / 3.0;
                     perNodeImpulse /= FG.m_timeStep;
                     softCluster->m_nodes[j]->m_f += perNodeImpulse;
                     softCluster->m_nodes[j + 1]->m_f += perNodeImpulse;
                     softCluster->m_nodes[j + 2]->m_f += perNodeImpulse;
+                    */
                     //absorb
                     if (softCluster->m_nodes[j]->m_absorb < 9)
                     {
                         softCluster->m_nodes[j]->m_absorb += 1;
-                        fluid->markParticleForRemoval(i);
+                        //fluid->markParticleForRemoval(i);
                     }               
                     else if (softCluster->m_nodes[j + 1]->m_absorb < 9)
                     {
                         softCluster->m_nodes[j + 1]->m_absorb += 1;
-                        fluid->markParticleForRemoval(i);
+                        //fluid->markParticleForRemoval(i);
                     }
                     else if(softCluster->m_nodes[j + 2]->m_absorb < 9)
                     {
                         softCluster->m_nodes[j + 2]->m_absorb += 1;
-                        fluid->markParticleForRemoval(i);
+                        //fluid->markParticleForRemoval(i);
                     }
                     else
                     {
@@ -298,6 +301,7 @@ struct FluidSoftInteractor
 		fluidSoftCollider.m_softBody = softBody;
 		fluidSoftCollider.m_particleObject = &particleObject;
         //ssxx debug
+        /*
         int sum0 = 0;
         int sum1 = 0;
         int sum2 = 0;
@@ -359,7 +363,7 @@ struct FluidSoftInteractor
         printf("Sum8 %d\n", sum8);
         printf("Sum9 %d\n", sum9);
         //ssxx debug
-
+        */
 		//Call FluidSphSoftBodyCollisionCallback::processParticles() for
 		//each SPH fluid grid cell intersecting with the soft body's AABB
 		grid.forEachGridCell(expandedSoftMin, expandedSoftMax, fluidSoftCollider);
