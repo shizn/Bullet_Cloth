@@ -44,60 +44,60 @@ static bool resolveFuildSoftContactNode(btVector3& aa, btVector3& bb, btVector3&
 
     return u + v <= 1;
 }
-static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG, btFluidSph* fluid, int sphParticleIndex,
-									btSoftBody::Cluster* softCluster, const btVector3& normalOnSoftBody, 
-									const btVector3&pointOnSoftBody, btScalar distance)
+static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG, btSoftBody* softbody, btFluidSph* fluid, int sphParticleIndex,
+    btSoftBody::Cluster* softCluster, const btVector3& normalOnSoftBody,
+    const btVector3&pointOnSoftBody, btScalar distance)
 {
-	const btFluidSphParametersLocal& FL = fluid->getLocalParameters();
-	
-	if( distance < btScalar(0.0) )
-	{
-		int i = sphParticleIndex;
-		btFluidParticles& particles = fluid->internalGetParticles();
-		
-		btSoftBody::Body clusterBody(softCluster);
-		btVector3 softLocalHitPoint = pointOnSoftBody - clusterBody.xform().getOrigin();
-		
-		btVector3 fluidVelocity = fluid->getVelocity(i);
-		btVector3 softVelocity = clusterBody.velocity(softLocalHitPoint);
-		softVelocity *= FG.m_simulationScale;
-	
-		btVector3 relativeVelocity = fluidVelocity - softVelocity;
-		btScalar penetratingMagnitude = relativeVelocity.dot(-normalOnSoftBody);
-		if( penetratingMagnitude < btScalar(0.0) ) penetratingMagnitude = btScalar(0.0);
-		
-		btVector3 penetratingVelocity = -normalOnSoftBody * penetratingMagnitude;
-		btVector3 tangentialVelocity = relativeVelocity - penetratingVelocity;
-		
-		penetratingVelocity *= btScalar(1.0) + FL.m_boundaryRestitution;
-		
-		btScalar positionError = (-distance) * (FG.m_simulationScale/FG.m_timeStep) * FL.m_boundaryErp;
-		btVector3 particleImpulse = -(penetratingVelocity + (-normalOnSoftBody*positionError) + tangentialVelocity*FL.m_boundaryFriction);
-		
+    const btFluidSphParametersLocal& FL = fluid->getLocalParameters();
+
+    if (distance < btScalar(0.0))
+    {
+        int i = sphParticleIndex;
+        btFluidParticles& particles = fluid->internalGetParticles();
+
+        btSoftBody::Body clusterBody(softCluster);
+        btVector3 softLocalHitPoint = pointOnSoftBody - clusterBody.xform().getOrigin();
+
+        btVector3 fluidVelocity = fluid->getVelocity(i);
+        btVector3 softVelocity = clusterBody.velocity(softLocalHitPoint);
+        softVelocity *= FG.m_simulationScale;
+
+        btVector3 relativeVelocity = fluidVelocity - softVelocity;
+        btScalar penetratingMagnitude = relativeVelocity.dot(-normalOnSoftBody);
+        if (penetratingMagnitude < btScalar(0.0)) penetratingMagnitude = btScalar(0.0);
+
+        btVector3 penetratingVelocity = -normalOnSoftBody * penetratingMagnitude;
+        btVector3 tangentialVelocity = relativeVelocity - penetratingVelocity;
+
+        penetratingVelocity *= btScalar(1.0) + FL.m_boundaryRestitution;
+
+        btScalar positionError = (-distance) * (FG.m_simulationScale / FG.m_timeStep) * FL.m_boundaryErp;
+        btVector3 particleImpulse = -(penetratingVelocity + (-normalOnSoftBody*positionError) + tangentialVelocity*FL.m_boundaryFriction);
+
         const bool APPLY_IMPULSE_TO_SOFT_BODY = true;
-		if(APPLY_IMPULSE_TO_SOFT_BODY)
-		{
-			btScalar inertiaParticle = btScalar(1.0) / FL.m_particleMass;
-			
-			btVector3 relPosCrossNormal = softLocalHitPoint.cross(normalOnSoftBody);
-			btScalar inertiaSoft = clusterBody.invMass() + ( relPosCrossNormal * clusterBody.invWorldInertia() ).dot(relPosCrossNormal);
-			
-			particleImpulse *= btScalar(1.0) / (inertiaParticle + inertiaSoft);
-			
-			btVector3 worldScaleImpulse = -particleImpulse / FG.m_simulationScale;
-			
-			//	Apply the impulse to all nodes(vertices) in the soft body cluster
-			//	this is incorrect, but sufficient for demonstration purposes
-            
-			btVector3 perNodeImpulse = worldScaleImpulse / static_cast<btScalar>( softCluster->m_nodes.size() );
-			perNodeImpulse /= FG.m_timeStep;		//Impulse is accumulated as force
-			
-			for(int j = 0; j < softCluster->m_nodes.size(); ++j)
-			{
-				btSoftBody::Node* node = softCluster->m_nodes[j];
-				node->m_f += perNodeImpulse;
-			}
-			
+        if (APPLY_IMPULSE_TO_SOFT_BODY)
+        {
+            btScalar inertiaParticle = btScalar(1.0) / FL.m_particleMass;
+
+            btVector3 relPosCrossNormal = softLocalHitPoint.cross(normalOnSoftBody);
+            btScalar inertiaSoft = clusterBody.invMass() + (relPosCrossNormal * clusterBody.invWorldInertia()).dot(relPosCrossNormal);
+
+            particleImpulse *= btScalar(1.0) / (inertiaParticle + inertiaSoft);
+
+            btVector3 worldScaleImpulse = -particleImpulse / FG.m_simulationScale;
+
+            //	Apply the impulse to all nodes(vertices) in the soft body cluster
+            //	this is incorrect, but sufficient for demonstration purposes
+
+            btVector3 perNodeImpulse = worldScaleImpulse / static_cast<btScalar>(softCluster->m_nodes.size());
+            perNodeImpulse /= FG.m_timeStep;		//Impulse is accumulated as force
+
+            for (int j = 0; j < softCluster->m_nodes.size(); ++j)
+            {
+                btSoftBody::Node* node = softCluster->m_nodes[j];
+                node->m_f += perNodeImpulse;
+            }
+
 
             // ssxx
             // Try Apply the impulse to the correct vertices in the soft body cluster
@@ -108,10 +108,10 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
                 btVector3 bb = softCluster->m_nodes[j + 1]->m_x;
                 btVector3 cc = softCluster->m_nodes[j + 2]->m_x;
                 btVector3 pp = pointOnSoftBody;
-                
+
                 if (resolveFuildSoftContactNode(aa, bb, cc, pp))
                 {
-                    
+
                     /*
                     btVector3 perNodeImpulse = worldScaleImpulse / 3.0;
                     perNodeImpulse /= FG.m_timeStep;
@@ -120,29 +120,60 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
                     softCluster->m_nodes[j + 2]->m_f += perNodeImpulse;
                     */
                     //absorb
+                    /*
                     if (softCluster->m_nodes[j]->m_absorb < 9)
                     {
-                        softCluster->m_nodes[j]->m_absorb += 1;
-                        //fluid->markParticleForRemoval(i);
-                    }               
+                    softCluster->m_nodes[j]->m_absorb += 1;
+                    //fluid->markParticleForRemoval(i);
+                    }
                     else if (softCluster->m_nodes[j + 1]->m_absorb < 9)
                     {
-                        softCluster->m_nodes[j + 1]->m_absorb += 1;
-                        //fluid->markParticleForRemoval(i);
+                    softCluster->m_nodes[j + 1]->m_absorb += 1;
+                    //fluid->markParticleForRemoval(i);
                     }
-                    else if(softCluster->m_nodes[j + 2]->m_absorb < 9)
+                    else if (softCluster->m_nodes[j + 2]->m_absorb < 9)
                     {
-                        softCluster->m_nodes[j + 2]->m_absorb += 1;
-                        //fluid->markParticleForRemoval(i);
+                    softCluster->m_nodes[j + 2]->m_absorb += 1;
+                    //fluid->markParticleForRemoval(i);
                     }
                     else
                     {
                     }
+                    */
+                    //find the face that shares the same nodes with this cluster
+                    /**/
+                    for (int x = 0; x < softbody->m_faces.size(); ++x)
+                    {
+                        btSoftBody::Face& f = softbody->m_faces[x];
+                        btSoftBody::Node* node[3] = { f.m_n[0], f.m_n[1], f.m_n[2] };
+                        int c = 0;
+                        for (int y = 0; y < 3; ++y)
+                        {
+                            if (softCluster->m_nodes[y] == node[0] ||
+                                softCluster->m_nodes[y] == node[1] ||
+                                softCluster->m_nodes[y] == node[2])
+                            {
+                                c++;
+                            }
+                        }
+                        if (3 == c)
+                        {
+                            // found the face
+                            // do the absorb
+                            if (f.m_absorb < 3.f)
+                            {
+                                f.m_absorb++;
+                                fluid->markParticleForRemoval(i);
+                            }
+
+                        }
+
+                    }
                 }
-            }       
+            }
             // ssxx
-			particleImpulse *= inertiaParticle;
-		}
+            particleImpulse *= inertiaParticle;
+        }
         //ssxx
         const bool APPLY_TWO_WAY_ABSORBPTION = false;
         if (APPLY_TWO_WAY_ABSORBPTION)
@@ -151,27 +182,27 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
             /*
             for (int j = 0; j < softCluster->m_nodes.size(); ++j)
             {
-                //penetratingMagnitude can be considered as absorb speed
-                btSoftBody::Node* node = softCluster->m_nodes[j];
-                btScalar cMass = 1.0 / (node->m_im);
-                btScalar allMass = cMass + FL.m_particleMass;
-                //delete the particle
-                if (allMass < 0.01f)
-                {
-                    fluid->markParticleForRemoval(i);
-                    node->m_im = 1.0 / allMass;
-                    //m_absorb to record the absorbed particle numbers
-                    //if (node->m_absorb <=6)
-                    //    node->m_absorb += 1;
-                }
-                else
-                {
-                    node->m_im = 10.0f;
-                }
+            //penetratingMagnitude can be considered as absorb speed
+            btSoftBody::Node* node = softCluster->m_nodes[j];
+            btScalar cMass = 1.0 / (node->m_im);
+            btScalar allMass = cMass + FL.m_particleMass;
+            //delete the particle
+            if (allMass < 0.01f)
+            {
+            fluid->markParticleForRemoval(i);
+            node->m_im = 1.0 / allMass;
+            //m_absorb to record the absorbed particle numbers
+            //if (node->m_absorb <=6)
+            //    node->m_absorb += 1;
+            }
+            else
+            {
+            node->m_im = 10.0f;
+            }
 
             }
             */
- 
+
         }
         //ssxx
         else
@@ -184,7 +215,7 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
             vel_eval = (vel + velNext) * btScalar(0.5);
             vel = velNext;
         }
-	}
+    }
 }
 
 ///Preliminary soft body - SPH fluid interaction demo; this class is not supported.
@@ -220,8 +251,8 @@ struct ParticleSoftBodyCollisionCallback : public btDbvt::ICollide
 			btVector3 pointOnCluster = contactResult.witnesses[0];
 			btScalar distance = contactResult.distance - FL.m_particleRadius;
 			
-			resolveFluidSoftContactImpulse(*m_globalParameters, m_fluidSph, m_sphParticleIndex, 
-											softCluster, normalOnCluster, pointOnCluster, distance);
+            resolveFluidSoftContactImpulse(*m_globalParameters, m_softBody, m_fluidSph, m_sphParticleIndex,
+                softCluster, normalOnCluster, pointOnCluster, distance);
 		}
 		
 	}

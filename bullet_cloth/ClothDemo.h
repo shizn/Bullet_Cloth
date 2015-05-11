@@ -25,6 +25,12 @@
 #include "btFluidSoftRigidDynamicsWorld.h"
 #include "GLDebugDrawer.h"
 
+//Assimp
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+//Assimp
+
 class btCollisionShape;
 class btBroadphaseInterface;
 class btCollisionDispatcher;
@@ -63,6 +69,16 @@ class ClothDemo : public PlatformDemoApplication
 
     GLDebugDrawer m_debugDrawer;
 
+    //Assimp
+    // Create an instance of the Importer class
+    Assimp::Importer importer;
+    const aiScene* scene;
+    float* vertexArray;
+    float* normalArray;
+    float* uvArray;
+    int numVerts;
+    //Assimp
+
 public:
 
     ClothDemo();
@@ -84,6 +100,10 @@ public:
     virtual void myinit();
     virtual void reshape(int w, int h);
     virtual void clientResetScene();
+
+    //Assimp
+    bool ImportObjMesh(const std::string& pFile);
+    //Assimp
 
     static DemoApplication* Create()
     {

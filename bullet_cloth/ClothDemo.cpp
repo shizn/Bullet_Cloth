@@ -48,8 +48,93 @@ ClothDemo::~ClothDemo()
 {
     if (m_screenSpaceRenderer) delete m_screenSpaceRenderer;
     exitPhysics();
+
+    //Assimp need to be cleaned
 }
 
+bool ClothDemo::ImportObjMesh(const std::string& pFile)
+{
+    // Start the import on the given file with some example post-processing  
+    // Usually - if speed is not the most important aspect for you - you'll t  
+    // probably to request more post-processing than we do in this example.
+    scene = importer.ReadFile(pFile, 
+        aiProcess_CalcTangentSpace 
+        | aiProcess_Triangulate 
+        | aiProcess_JoinIdenticalVertices 
+        | aiProcess_SortByPType);
+
+    // If the import failed, report it
+    if (!scene)
+    {
+        printf("%s\n", importer.GetErrorString());
+        return false;
+    }
+    else
+    {
+        aiMesh* mesh = scene->mMeshes[0];
+
+        
+        numVerts = mesh->mNumVertices * 3;
+        vertexArray = new float[mesh->mNumFaces * 3 * 3];
+        normalArray = new float[mesh->mNumFaces * 3 * 3];
+        uvArray = new float[mesh->mNumFaces * 3 * 2];
+
+        for (int i = 0; i < mesh->mNumFaces; ++i)
+        {
+            const aiFace& face = mesh->mFaces[i];
+            for (int j = 0; j < 3; ++j)
+            {
+                //aiVector3D uv = mesh->mTextureCoords[0][face.mIndices[j]];
+                //memcpy(uvArray, &uv, sizeof(float) * 2);
+                //uvArray += 2;
+
+                aiVector3D normal = mesh->mNormals[face.mIndices[j]];
+                memcpy(normalArray, &normal, sizeof(float) * 3);
+                normalArray += 3;
+
+                aiVector3D pos = mesh->mVertices[face.mIndices[j]];
+                memcpy(vertexArray, &pos, sizeof(float) * 3);
+                vertexArray += 3;
+            }
+        }
+        //uvArray -= mesh->mNumFaces * 3 * 2;
+        normalArray -= mesh->mNumFaces * 3 * 3;
+        vertexArray -= mesh->mNumFaces * 3 * 3;
+
+        return true;
+    }
+}
+
+void inline renderImportMesh(float* vertexArray, float* normalArray, int numVerts)
+{
+    //rendering
+
+    /*
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    //glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    glVertexPointer(3, GL_FLOAT, 0, vertexArray);
+    glNormalPointer(GL_FLOAT, 0, normalArray);
+
+    //glClientActiveTexture(GL_TEXTURE0_ARB);
+    //glTexCoordPointer(2, GL_FLOAT, 0, uvArray);
+
+    glDrawArrays(GL_TRIANGLES, 0, numVerts);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    //glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    */
+    glBegin(GL_TRIANGLES);
+    glColor3f(0.3f, 0.3f, 0.3f);
+    for (int i = 0; i < (numVerts*6); i = i + 3)
+    {
+        glNormal3f(normalArray[i], normalArray[i + 1], normalArray[i + 2]);
+        glVertex3f(vertexArray[i], vertexArray[i + 1], vertexArray[i + 2]);
+    }
+    glEnd();
+    
+}
 
 void ClothDemo::initPhysics()
 {
@@ -161,6 +246,11 @@ void ClothDemo::initPhysics()
         //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
+
+    //import human body
+    {
+        //ImportObjMesh("E:/Projects/bullet_cloth/Debug/manTri.obj");
+    }
 }
 void ClothDemo::exitPhysics()
 {
@@ -257,7 +347,7 @@ void ClothDemo::clientMoveAndDisplay()
             //ssxx
         }
         {
-            /*
+            
             static int i = 0;
             if (i>10)
             {
@@ -265,7 +355,7 @@ void ClothDemo::clientMoveAndDisplay()
                 i = 0;
             }
             i++;
-            */
+            
         }
     }
 
@@ -603,6 +693,8 @@ void ClothDemo::displayCallback(void)
 
     renderFluids();
 
+    //renderImportMesh(vertexArray, normalArray, numVerts);
+
     /*
     static bool areSpheresGenerated = false;
     static GLuint glLargeSphereList;
@@ -771,6 +863,7 @@ void ClothDemo::myinit()
 
     //ScreenSpaceFluidRendererGL may initialize GLEW, which requires an existing OpenGL context
     if (!m_screenSpaceRenderer) m_screenSpaceRenderer = new ScreenSpaceFluidRendererGL(m_glutScreenWidth, m_glutScreenHeight);
+
 }
 
 void ClothDemo::reshape(int w, int h)
