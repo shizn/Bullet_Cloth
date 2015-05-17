@@ -26,8 +26,8 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -46,8 +46,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\assimp-3.1.1-win-binaries\include;D:\Bullet\bullet-2.81-rev2613\src;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\assimp-3.1.1-win-binaries\lib32;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\assimp-3.1.1-win-binaries\include;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;D:\Bullet\bullet-2.81-rev2613\src;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\assimp-3.1.1-win-binaries\lib\Release;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -71,19 +71,26 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_HAS_EXCEPTIONS=0;GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\src;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <StringPooling>true</StringPooling>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;assimp.lib;glut32.lib;BulletCollision_vs2010_debug.lib;BulletDynamics_vs2010_debug.lib;BulletFluids_vs2010_debug.lib;BulletSoftBody_vs2010_debug.lib;BulletSoftBodyDX11Solvers_vs2010_debug.lib;ConvexDecomposition_vs2010_debug.lib;HACD_vs2010_debug.lib;LinearMath_vs2010_debug.lib;OpenGLSupport_vs2010_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\assimp-3.1.1-win-binaries\bin32;D:\Bullet\bullet-2.81-rev2613\Glut;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;assimp.lib;glew64s.lib;glut32.lib;glut64.lib;BulletCollision_vs2010.lib;BulletDynamics_vs2010.lib;BulletFluids_vs2010.lib;BulletSoftBody_vs2010.lib;BulletSoftBodyDX11Solvers_vs2010.lib;ConvexDecomposition_vs2010.lib;HACD_vs2010.lib;LinearMath_vs2010.lib;OpenGLSupport_vs2010.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\Bullet\bullet-2.81-rev2613\Glut;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

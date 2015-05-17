@@ -79,7 +79,7 @@ bool ClothDemo::ImportObjMesh(const std::string& pFile)
         normalArray = new float[mesh->mNumFaces * 3 * 3];
         uvArray = new float[mesh->mNumFaces * 3 * 2];
 
-        for (int i = 0; i < mesh->mNumFaces; ++i)
+        for (unsigned int i = 0; i < mesh->mNumFaces; ++i)
         {
             const aiFace& face = mesh->mFaces[i];
             for (int j = 0; j < 3; ++j)
@@ -241,12 +241,44 @@ void ClothDemo::initPhysics()
         softBody->generateBendingConstraints(2, material);
         softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
         //ssxx draw flag
-        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
+        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::Contacts);
         softBody->m_faces[30].m_absorb = 10.0;
         //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
 
+    //Create a soft-body cloth patch 2
+    /*
+    {
+        const btScalar POSITION_Y(20.0);
+        const btScalar EXTENT(16.0);
+        const int RESOLUTION = 20;
+        btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(), btVector3(-EXTENT, POSITION_Y, -EXTENT),
+            btVector3(EXTENT, POSITION_Y, -EXTENT),
+            btVector3(-EXTENT, POSITION_Y, EXTENT),
+            btVector3(EXTENT, POSITION_Y, EXTENT),
+            RESOLUTION, RESOLUTION, 0, true);
+
+        btSoftBody::Material* material = softBody->appendMaterial();
+        material->m_kLST = 0.5;
+        material->m_kAST = 0.5;
+        material->m_flags -= btSoftBody::fMaterial::DebugDraw;
+
+        softBody->m_cfg.kDF = 1.0;
+        softBody->m_cfg.kSRHR_CL = 1.0;
+        softBody->m_cfg.kSR_SPLT_CL = 0.5;
+        softBody->m_cfg.collisions = btSoftBody::fCollision::CL_SS + btSoftBody::fCollision::CL_RS;
+
+        softBody->setTotalMass(2.0);
+        softBody->generateBendingConstraints(2, material);
+        softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
+        //ssxx draw flag
+        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
+        //softBody->m_faces[30].m_absorb = 10.0;
+        //ssxx
+        m_fluidSoftRigidWorld->addSoftBody(softBody);
+    }
+    */
     //import human body
     {
         //ImportObjMesh("E:/Projects/bullet_cloth/Debug/manTri.obj");
