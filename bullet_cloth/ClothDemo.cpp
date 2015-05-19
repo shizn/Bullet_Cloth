@@ -33,6 +33,10 @@ subject to the following restrictions:
 #include "tubeTriangleMesh.h"
 #endif
 
+#define SCENE1 1
+#define SCENE2 0
+#define SCENE3 0
+
 ClothDemo::ClothDemo()
 {
     setTexturing(true);
@@ -126,8 +130,8 @@ void inline renderImportMesh(float* vertexArray, float* normalArray, int numVert
     //glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     */
     glBegin(GL_TRIANGLES);
-    glColor3f(0.3f, 0.3f, 0.3f);
-    for (int i = 0; i < (numVerts*6); i = i + 3)
+    glColor3f(0.6f, 0.f, 0.f);
+    for (int i = 0; i < (numVerts*3); i = i + 3)
     {
         glNormal3f(normalArray[i], normalArray[i + 1], normalArray[i + 2]);
         glVertex3f(vertexArray[i], vertexArray[i + 1], vertexArray[i + 2]);
@@ -178,21 +182,19 @@ void ClothDemo::initPhysics()
 
     //Create btFluidSph(s), which contain groups of particles
     {
-        const int MAX_PARTICLES = 8192;
+        const int MAX_PARTICLES = 81920;
         btFluidSph* fluidSph = new btFluidSph(m_fluidSoftRigidWorld->getGlobalParameters(), MAX_PARTICLES);
 
         {
             btFluidSphParametersLocal FL = fluidSph->getLocalParameters();
 
-            const btScalar AABB_EXTENT(25.0);
+            const btScalar AABB_EXTENT(30.0);
             FL.m_aabbBoundaryMin = btVector3(-AABB_EXTENT, -AABB_EXTENT, -AABB_EXTENT);
             //FL.m_aabbBoundaryMax = btVector3(AABB_EXTENT, AABB_EXTENT*btScalar(100.0), AABB_EXTENT);
             FL.m_aabbBoundaryMax = btVector3(AABB_EXTENT, AABB_EXTENT, AABB_EXTENT);
             FL.m_enableAabbBoundary = 1;
-
-            //FL.m_particleMass = btScalar(0.0001);	//Mass of particles when colliding with rigid/soft bodies; def 0.00020543
-            //FL.m_boundaryErp = btScalar(0.375);	//Increase m_boundaryErp to reduce penetration at the cost of increased jitter; def 0.0375
-
+            //FL.m_particleMass = btScalar(0.001);	//Mass of particles when colliding with rigid/soft bodies; def 0.00020543
+            FL.m_boundaryErp = btScalar(0.375);	//Increase m_boundaryErp to reduce penetration at the cost of increased jitter; def 0.0375
             fluidSph->setLocalParameters(FL);
 
 
@@ -206,17 +208,19 @@ void ClothDemo::initPhysics()
 
     }
     //Create a soft-body cloth patch
+    if (SCENE1 || SCENE2)
     {
         const btScalar POSITION_Y(10.0);
         const btScalar EXTENT(16.0);
 
-        const int RESOLUTION = 20;
+        const int RESOLUTION = 40;
 
 #ifndef USE_TUBE_MESH_FOR_SOFT_BODY		
-        btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(), btVector3(-EXTENT, POSITION_Y, -EXTENT),
+        btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(), 
+            btVector3(-EXTENT, POSITION_Y, -EXTENT),
             btVector3(EXTENT, POSITION_Y, -EXTENT),
-            btVector3(-EXTENT, POSITION_Y, EXTENT),
-            btVector3(EXTENT, POSITION_Y, EXTENT),
+            btVector3(-EXTENT, POSITION_Y+10, EXTENT),
+            btVector3(EXTENT, POSITION_Y+10, EXTENT),
             RESOLUTION, RESOLUTION, 1 + 2 + 4 + 8, true);
 #else
         btSoftBody* softBody = btSoftBodyHelpers::CreateFromTriMesh(m_fluidSoftRigidWorld->getWorldInfo(),
@@ -228,37 +232,39 @@ void ClothDemo::initPhysics()
 #endif
 
         btSoftBody::Material* material = softBody->appendMaterial();
-        material->m_kLST = 0.5;
-        material->m_kAST = 0.5;
+        material->m_kLST = 1;
+        material->m_kAST = 1;
         material->m_flags -= btSoftBody::fMaterial::DebugDraw;
 
-        softBody->m_cfg.kDF = 1.0;
+        softBody->m_cfg.kDP = 1.0;
+        softBody->m_cfg.kDF = 10.0;
         softBody->m_cfg.kSRHR_CL = 1.0;
         softBody->m_cfg.kSR_SPLT_CL = 0.5;
         softBody->m_cfg.collisions = btSoftBody::fCollision::CL_SS + btSoftBody::fCollision::CL_RS;
 
-        softBody->setTotalMass(2.0);
+        softBody->setTotalMass(8.0);
         softBody->generateBendingConstraints(2, material);
         softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
         //ssxx draw flag
-        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::Contacts);
-        softBody->m_faces[30].m_absorb = 10.0;
+        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
+        softBody->m_faces[30].m_absorb = 100.0;
         //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
 
     //Create a soft-body cloth patch 2
-    /*
+    if (SCENE2)
     {
-        const btScalar POSITION_Y(20.0);
-        const btScalar EXTENT(16.0);
-        const int RESOLUTION = 20;
-        btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(), btVector3(-EXTENT, POSITION_Y, -EXTENT),
-            btVector3(EXTENT, POSITION_Y, -EXTENT),
-            btVector3(-EXTENT, POSITION_Y, EXTENT),
-            btVector3(EXTENT, POSITION_Y, EXTENT),
+        const btScalar POSITION_Y(40.0);
+        const btScalar EXTENT(6.0);
+        const int RESOLUTION = 10;
+        btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(), 
+            btVector3(-EXTENT, POSITION_Y, -EXTENT-15),
+            btVector3(EXTENT, POSITION_Y, -EXTENT-15),
+            btVector3(-EXTENT, POSITION_Y, EXTENT-15),
+            btVector3(EXTENT, POSITION_Y, EXTENT-15),
             RESOLUTION, RESOLUTION, 0, true);
-
+        
         btSoftBody::Material* material = softBody->appendMaterial();
         material->m_kLST = 0.5;
         material->m_kAST = 0.5;
@@ -278,10 +284,23 @@ void ClothDemo::initPhysics()
         //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
-    */
+    
     //import human body
+    if (SCENE3)
     {
-        //ImportObjMesh("E:/Projects/bullet_cloth/Debug/manTri.obj");
+        ImportObjMesh("E:/Projects/bullet_cloth/Release/woman_cloth.obj");
+        int* indices = new int[numVerts*3];
+        for (int i = 0; i < numVerts; ++i)
+        {
+            indices[i] = i;
+        }
+        btSoftBody* softBody = btSoftBodyHelpers::CreateFromTriMesh(m_fluidSoftRigidWorld->getWorldInfo(),
+            vertexArray, indices, numVerts, true);
+
+        //softBody->transform(btTransform(btQuaternion::getIdentity(), btVector3(0.0, 50.0, 0.0)));	//Set softbody position
+
+        //for (int i = 0; i < TUBE_NUM_FIXED_VERTICIES; ++i) softBody->setMass(TUBE_FIXED_VERTICIES[i], btScalar(0.0));
+
     }
 }
 void ClothDemo::exitPhysics()
@@ -348,11 +367,12 @@ void ClothDemo::clientMoveAndDisplay()
     {
         static int counter = 0;
         static int fluidcounter = 0;
-        if (++counter > 10)
+        if (++counter > 1)
         {
             counter = 0;
             //ssxx
             //add fluids here
+            if (SCENE1)
             if (m_fluidSph && (++fluidcounter))
             {
                 emitParticle(m_fluidSph, btVector3(0.0, 30.0, 0.0), btVector3(0.0, -1.0, 0.0));
@@ -719,14 +739,20 @@ void ClothDemo::displayCallback(void)
     //timings are captured only when the camera is moving.
     //BT_PROFILE("ClothDemo::displayCallback()");
 
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     renderme();
 
     renderFluids();
 
-    //renderImportMesh(vertexArray, normalArray, numVerts);
+    if (SCENE3)
+    renderImportMesh(vertexArray, normalArray, numVerts);
 
+    
+
+    
+    
     /*
     static bool areSpheresGenerated = false;
     static GLuint glLargeSphereList;

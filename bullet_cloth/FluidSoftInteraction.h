@@ -173,38 +173,17 @@ static void resolveFluidSoftContactImpulse(const btFluidSphParametersGlobal& FG,
             }
             // ssxx
             particleImpulse *= inertiaParticle;
-        }
-        //ssxx
-        const bool APPLY_TWO_WAY_ABSORBPTION = false;
-        if (APPLY_TWO_WAY_ABSORBPTION)
-        {
-            fluid->markParticleForRemoval(i);
-            /*
-            for (int j = 0; j < softCluster->m_nodes.size(); ++j)
-            {
-            //penetratingMagnitude can be considered as absorb speed
-            btSoftBody::Node* node = softCluster->m_nodes[j];
-            btScalar cMass = 1.0 / (node->m_im);
-            btScalar allMass = cMass + FL.m_particleMass;
-            //delete the particle
-            if (allMass < 0.01f)
-            {
-            fluid->markParticleForRemoval(i);
-            node->m_im = 1.0 / allMass;
-            //m_absorb to record the absorbed particle numbers
-            //if (node->m_absorb <=6)
-            //    node->m_absorb += 1;
-            }
-            else
-            {
-            node->m_im = 10.0f;
-            }
 
-            }
-            */
+            // Particles vel of fluid need to be modified
+            btVector3& vel = particles.m_vel[i];
+            btVector3& vel_eval = particles.m_vel_eval[i];
 
+            //Leapfrog integration
+            btVector3 velNext = vel + particleImpulse;
+            vel_eval = (vel + velNext) * btScalar(0.5);
+            vel = velNext;
+            vel.setY(vel.getY()*0.1);
         }
-        //ssxx
         else
         {
             btVector3& vel = particles.m_vel[i];
