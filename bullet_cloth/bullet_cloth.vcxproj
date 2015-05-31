@@ -105,6 +105,7 @@
   <ItemGroup>
     <ClInclude Include="btFluidSoftRigidCollisionConfiguration.h" />
     <ClInclude Include="btFluidSoftRigidDynamicsWorld.h" />
+    <ClInclude Include="BunnyMesh.h" />
     <ClInclude Include="ClothDemo.h" />
     <ClInclude Include="FluidSoftInteraction.h" />
     <ClInclude Include="FrameBufferGL.h" />

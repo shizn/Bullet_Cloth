@@ -452,7 +452,7 @@ void ScreenSpaceFluidRendererGL::render(const btAlignedObjectArray<btVector3>& p
 	
 	if( !particlePositions.size() ) return;
 	
-	glDepthMask(GL_TRUE);
+	//glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 	
 	bool renderingResolutionDiffers = ( m_windowWidth != m_frameBuffer.getWidth() || m_windowHeight != m_frameBuffer.getHeight() );
@@ -478,12 +478,14 @@ void ScreenSpaceFluidRendererGL::render(const btAlignedObjectArray<btVector3>& p
 	if(renderingResolutionDiffers) glViewport(0, 0, m_windowWidth, m_windowHeight);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
 	glUseProgram(m_blitShader);
 	glUniform1i( glGetUniformLocation(m_blitShader, "rgbaTexture"), 0 );
 	glUniform1i( glGetUniformLocation(m_blitShader, "depthTexture"), 1 );
 		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		renderFullScreenTexture(m_surfaceColorTexture, m_surfaceDepthTexture, 0);
-	glDisable(GL_BLEND);
+	//glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
 	glUseProgram(0);
 	
 	//Default clear color for Bullet demos, set in DemoApplication::myinit()

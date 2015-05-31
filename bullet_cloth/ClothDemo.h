@@ -31,6 +31,10 @@
 #include <assimp/postprocess.h>
 //Assimp
 
+//bunny
+#include "BunnyMesh.h"
+
+
 class btCollisionShape;
 class btBroadphaseInterface;
 class btCollisionDispatcher;
@@ -73,10 +77,15 @@ class ClothDemo : public PlatformDemoApplication
     // Create an instance of the Importer class
     Assimp::Importer importer;
     const aiScene* scene;
+    const aiMesh* meshBunny;
     float* vertexArray;
     float* normalArray;
     float* uvArray;
-    int numVerts;
+    int numTriangles;
+    int numVertices;
+    int numIndices;
+    btScalar *gVertices;
+    int *gIndices;
     //Assimp
 
 public:
@@ -92,6 +101,7 @@ public:
     virtual void displayCallback();			//Rendering occurs here
 
     void renderFluids();
+    void renderSoftBodys();
     void processClothDiffusion();
     //
     virtual void keyboardCallback(unsigned char key, int x, int y);
