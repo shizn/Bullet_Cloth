@@ -35,7 +35,7 @@ subject to the following restrictions:
 
 #define SCENE1 0
 #define SCENE2 0
-#define SCENE3 3
+#define SCENE3 1
 
 ClothDemo::ClothDemo()
 {
@@ -56,6 +56,90 @@ ClothDemo::~ClothDemo()
     //Assimp need to be cleaned
 }
 
+void color4_to_float4(const aiColor4D *c, float f[4])
+{
+    f[0] = c->r;
+    f[1] = c->g;
+    f[2] = c->b;
+    f[3] = c->a;
+}
+
+void set_float4(float f[4], float a, float b, float c, float d)
+{
+    f[0] = a;
+    f[1] = b;
+    f[2] = c;
+    f[3] = d;
+}
+
+
+void apply_material(const aiMaterial *mtl)
+{
+    float c[4];
+
+    GLenum fill_mode;
+    int ret1, ret2;
+    aiColor4D diffuse;
+    aiColor4D specular;
+    aiColor4D ambient;
+    aiColor4D emission;
+    float shininess, strength;
+    int two_sided;
+    int wireframe;
+    unsigned int max;
+
+    set_float4(c, 0.8f, 0.8f, 0.8f, 1.0f);
+    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse))
+        color4_to_float4(&diffuse, c);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, c);
+
+    set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
+    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular))
+        color4_to_float4(&specular, c);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, c);
+
+    set_float4(c, 0.2f, 0.2f, 0.2f, 1.0f);
+    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient))
+        color4_to_float4(&ambient, c);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, c);
+
+    set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
+    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emission))
+        color4_to_float4(&emission, c);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, c);
+
+    max = 1;
+    ret1 = aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS, &shininess, &max);
+    if (ret1 == AI_SUCCESS) {
+        max = 1;
+        ret2 = aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS_STRENGTH, &strength, &max);
+        if (ret2 == AI_SUCCESS)
+            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess * strength);
+        else
+            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+    }
+    else {
+        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 0.0f);
+        set_float4(c, 0.0f, 0.0f, 0.0f, 0.0f);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, c);
+    }
+
+    max = 1;
+    if (AI_SUCCESS == aiGetMaterialIntegerArray(mtl, AI_MATKEY_ENABLE_WIREFRAME, &wireframe, &max))
+        fill_mode = wireframe ? GL_LINE : GL_FILL;
+    else
+        fill_mode = GL_FILL;
+    glPolygonMode(GL_FRONT_AND_BACK, fill_mode);
+
+    max = 1;
+    if ((AI_SUCCESS == aiGetMaterialIntegerArray(mtl, AI_MATKEY_TWOSIDED, &two_sided, &max)) && two_sided)
+        glDisable(GL_CULL_FACE);
+    else
+        glEnable(GL_CULL_FACE);
+}
+
+
+
 bool ClothDemo::ImportObjMesh(const std::string& pFile)
 {
     // Start the import on the given file with some example post-processing  
@@ -75,11 +159,12 @@ bool ClothDemo::ImportObjMesh(const std::string& pFile)
     }
     else
     {
-        aiMesh* mesh = scene->mMeshes[0];
+        mesh = scene->mMeshes[0];
         
         numTriangles = mesh->mNumFaces;
         numVertices = mesh->mNumVertices;
         numIndices = numTriangles * 3;
+        
         
         gVertices = new btScalar[numVertices * 3];
 
@@ -98,6 +183,14 @@ bool ClothDemo::ImportObjMesh(const std::string& pFile)
             gIndices[i + 1] = mesh->mFaces[j].mIndices[1];
             gIndices[i + 2] = mesh->mFaces[j].mIndices[2];
         }
+
+
+
+
+        //Material
+        //Try tutorial render method
+
+
 
         /*
         gIndices = new int *[numTriangles];
@@ -372,7 +465,7 @@ void ClothDemo::initPhysics()
         m_fluidSoftRigidWorld->addSoftBody(psb);
         */
         
-        ImportObjMesh("E:/Projects/bullet_cloth/Release/bunny_patched.obj");
+        ImportObjMesh("E:/Projects/bullet_cloth/Release/bunny_m.obj");
         btSoftBody* psb = btSoftBodyHelpers::CreateFromTriMesh(m_fluidSoftRigidWorld->getWorldInfo(),
             gVertices,&gIndices[0],numTriangles);
         btSoftBody::Material*	pm = psb->appendMaterial();
@@ -477,17 +570,49 @@ void ClothDemo::clientMoveAndDisplay()
             //ssxx
             //add fluids here
             if (SCENE1)
-            if (m_fluidSph && (++fluidcounter))
+            if (m_fluidSph && (++fluidcounter<500))
             {
                 emitParticle(m_fluidSph, btVector3(0.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(0.0, 50.0, 1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(1.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-1.0, 50.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(1.0, 50.0, 1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-1.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(0.0, 50.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(1.0, 50.0, -1.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-1.0, 50.0, 1.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(0.0, 50.0, 2.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(2.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, -2.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(2.0, 50.0, 2.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(0.0, 50.0, -2.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(2.0, 50.0, -2.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, 2.0), btVector3(0.0, -1.0, 0.0));
+            }
+            if (SCENE1 && counter == 600)
+            {
+                //create another cloth patch
+                const btScalar POSITION_Y(40.0);
+                const btScalar EXTENT(10.0);
+                const int RESOLUTION = 40;
+                btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(),
+                    btVector3(-EXTENT, POSITION_Y, -EXTENT - 15),
+                    btVector3(EXTENT, POSITION_Y, -EXTENT - 15),
+                    btVector3(-EXTENT, POSITION_Y, EXTENT - 15),
+                    btVector3(EXTENT, POSITION_Y, EXTENT - 15),
+                    RESOLUTION, RESOLUTION, 0, true);
+
+                btSoftBody::Material* material = softBody->appendMaterial();
+                material->m_kLST = 0.5;
+                material->m_kAST = 0.5;
+                material->m_flags -= btSoftBody::fMaterial::DebugDraw;
+
+                softBody->m_cfg.kDF = 1.0;
+                softBody->m_cfg.kSRHR_CL = 1.0;
+                softBody->m_cfg.kSR_SPLT_CL = 0.5;
+                softBody->m_cfg.collisions = btSoftBody::fCollision::CL_SS + btSoftBody::fCollision::CL_RS;
+
+                softBody->setTotalMass(2.0);
+                softBody->generateBendingConstraints(2, material);
+                softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
+                //ssxx draw flag
+                //m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::Clusters);
+                //softBody->m_faces[30].m_absorb = 10.0;
+                //ssxx
+                m_fluidSoftRigidWorld->addSoftBody(softBody);
             }
 
 
@@ -903,6 +1028,53 @@ void drawTriangle(const btSoftBody::Node* x1, const btSoftBody::Node* x2, const 
 
 }
 
+
+void ClothDemo::renderscene()
+{
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBegin(GL_TRIANGLES);
+    glDepthMask(GL_FALSE);
+
+    apply_material(scene->mMaterials[mesh->mMaterialIndex]);
+    if (mesh->mNormals == NULL) {
+        glDisable(GL_LIGHTING);
+    }
+    else {
+        glEnable(GL_LIGHTING);
+    }
+    for (int t = 0; t < mesh->mNumFaces; ++t) {
+        const struct aiFace* face = &mesh->mFaces[t];
+        GLenum face_mode;
+
+        switch (face->mNumIndices) {
+        case 1: face_mode = GL_POINTS; break;
+        case 2: face_mode = GL_LINES; break;
+        case 3: face_mode = GL_TRIANGLES; break;
+        default: face_mode = GL_POLYGON; break;
+        }
+
+        //glBegin(face_mode);
+
+        for (int i = 0; i < face->mNumIndices; i++) {
+            int index = face->mIndices[i];
+            if (mesh->mColors[0] != NULL)
+                glColor4fv((GLfloat*)&mesh->mColors[0][index]);
+            if (mesh->mNormals != NULL)
+                glNormal3fv(&mesh->mNormals[index].x);
+            glVertex3fv(&mesh->mVertices[index].x);
+        }
+
+        //glEnd();
+    }
+
+
+    glDisable(GL_BLEND);
+    glEnd();
+    glDepthMask(GL_TRUE);
+}
+
 void ClothDemo::renderSoftBodys(void)
 {
     btAlignedObjectArray<btSoftBody*> softBodies = m_fluidSoftRigidWorld->getSoftBodyArray();
@@ -982,7 +1154,8 @@ void ClothDemo::displayCallback(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     renderme();
-    renderSoftBodys();
+    //renderscene();
+    //renderSoftBodys();
     renderFluids();
     
     if (SCENE3)

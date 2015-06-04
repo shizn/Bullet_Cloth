@@ -77,13 +77,15 @@ class ClothDemo : public PlatformDemoApplication
     // Create an instance of the Importer class
     Assimp::Importer importer;
     const aiScene* scene;
-    const aiMesh* meshBunny;
+    const aiMesh* mesh;
     float* vertexArray;
     float* normalArray;
     float* uvArray;
     int numTriangles;
     int numVertices;
-    int numIndices;
+    int numIndices; 
+
+
     btScalar *gVertices;
     int *gIndices;
     //Assimp
@@ -100,6 +102,7 @@ public:
     virtual void clientMoveAndDisplay();	//Simulation is updated/stepped here
     virtual void displayCallback();			//Rendering occurs here
 
+    void renderscene();
     void renderFluids();
     void renderSoftBodys();
     void processClothDiffusion();
