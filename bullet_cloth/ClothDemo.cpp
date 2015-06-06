@@ -72,6 +72,125 @@ void set_float4(float f[4], float a, float b, float c, float d)
     f[3] = d;
 }
 
+//GLboolean abortGLInit(const char*);
+
+std::string getBasePath(const std::string& path)
+{
+    size_t pos = path.find_last_of("\\/");
+    return (std::string::npos == pos) ? "" : path.substr(0, pos + 1);
+}
+int ClothDemo::LoadGLTextures(const aiScene* scene)
+{
+    ILboolean success;
+
+    /* Before calling ilInit() version should be checked. */
+    if (ilGetInteger(IL_VERSION_NUM) < IL_VERSION)
+    {
+        /// wrong DevIL version ///
+        std::string err_msg = "Wrong DevIL version. Old devil.dll in system32/SysWow64?";
+        char* cErr_msg = (char *)err_msg.c_str();
+        //abortGLInit(cErr_msg);
+        return -1;
+    }
+
+    ilInit(); /* Initialization of DevIL */
+
+    if (scene->HasTextures())
+    {
+        //abortGLInit("Support for meshes with embedded textures is not implemented");
+    }
+    /* getTexture Filenames and Numb of Textures */
+    for (unsigned int m = 0; m<scene->mNumMaterials; m++)
+    {
+        int texIndex = 0;
+        aiReturn texFound = AI_SUCCESS;
+
+        aiString path;	// filename
+
+        while (texFound == AI_SUCCESS)
+        {
+            texFound = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
+            textureIdMap[path.data] = NULL; //fill map with textures, pointers still NULL yet
+            texIndex++;
+        }
+    }
+
+    int numTextures = textureIdMap.size();
+
+    /* array with DevIL image IDs */
+    ILuint* imageIds = NULL;
+    imageIds = new ILuint[numTextures];
+
+    /* generate DevIL Image IDs */
+    ilGenImages(numTextures, imageIds); /* Generation of numTextures image names */
+
+    /* create and fill array with GL texture ids */
+    textureIds = new GLuint[numTextures];
+    glGenTextures(numTextures, textureIds); /* Texture name generation */
+
+    /* get iterator */
+    std::map<std::string, GLuint*>::iterator itr = textureIdMap.begin();
+
+    std::string basepath = getBasePath(modelpath);
+    for (int i = 0; i<numTextures; i++)
+    {
+
+        //save IL image ID
+        std::string filename = (*itr).first;  // get filename
+        (*itr).second = &textureIds[i];	  // save texture id for filename in map
+        itr++;								  // next texture
+
+
+        ilBindImage(imageIds[i]); /* Binding of DevIL image name */
+        std::string fileloc = basepath + filename;	/* Loading of image */
+        success = ilLoadImage(fileloc.c_str());
+
+        if (success) /* If no error occured: */
+        {
+            // Convert every colour component into unsigned byte.If your image contains 
+            // alpha channel you can replace IL_RGB with IL_RGBA
+            success = ilConvertImage(IL_RGB, IL_UNSIGNED_BYTE);
+            if (!success)
+            {
+                /* Error occured */
+                //abortGLInit("Couldn't convert image");
+                return -1;
+            }
+            // Binding of texture name
+            glBindTexture(GL_TEXTURE_2D, textureIds[i]);
+            // redefine standard texture values
+            // We will use linear interpolation for magnification filter
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            // We will use linear interpolation for minifying filter
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            // Texture specification
+            glTexImage2D(GL_TEXTURE_2D, 0, ilGetInteger(IL_IMAGE_BPP), ilGetInteger(IL_IMAGE_WIDTH),
+                ilGetInteger(IL_IMAGE_HEIGHT), 0, ilGetInteger(IL_IMAGE_FORMAT), GL_UNSIGNED_BYTE,
+                ilGetData());
+            // we also want to be able to deal with odd texture dimensions
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+            glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+            glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+        }
+        else
+        {
+            /* Error occured */
+            ILenum error;
+            error = ilGetError();
+            MessageBox(NULL, ("Couldn't load Image: " + fileloc).c_str(), "ERROR", MB_OK | MB_ICONEXCLAMATION);
+        }
+    }
+    // Because we have already copied image data into texture data  we can release memory used by image.
+    ilDeleteImages(numTextures, imageIds);
+
+    // Cleanup
+    delete[] imageIds;
+    imageIds = NULL;
+
+    return TRUE;
+}
+
 
 void apply_material(const aiMaterial *mtl)
 {
@@ -464,8 +583,9 @@ void ClothDemo::initPhysics()
         //psb->m_faces[30].m_absorb = 100.0;
         m_fluidSoftRigidWorld->addSoftBody(psb);
         */
-        
-        ImportObjMesh("E:/Projects/bullet_cloth/Release/bunny_m.obj");
+        modelpath = "E:/Projects/bullet_cloth/Release/bunny_m.obj";
+        ImportObjMesh(modelpath);
+        LoadGLTextures(scene);
         btSoftBody* psb = btSoftBodyHelpers::CreateFromTriMesh(m_fluidSoftRigidWorld->getWorldInfo(),
             gVertices,&gIndices[0],numTriangles);
         btSoftBody::Material*	pm = psb->appendMaterial();
@@ -1028,6 +1148,10 @@ void drawTriangle(const btSoftBody::Node* x1, const btSoftBody::Node* x2, const 
 
 }
 
+void Color4f(const aiColor4D *color)
+{
+    glColor4f(color->r, color->g, color->b, color->a);
+}
 
 void ClothDemo::renderscene()
 {
@@ -1048,25 +1172,32 @@ void ClothDemo::renderscene()
         const struct aiFace* face = &mesh->mFaces[t];
         GLenum face_mode;
 
-        switch (face->mNumIndices) {
+        switch (face->mNumIndices)
+        {
         case 1: face_mode = GL_POINTS; break;
         case 2: face_mode = GL_LINES; break;
         case 3: face_mode = GL_TRIANGLES; break;
         default: face_mode = GL_POLYGON; break;
         }
 
-        //glBegin(face_mode);
+        glBegin(face_mode);
 
-        for (int i = 0; i < face->mNumIndices; i++) {
-            int index = face->mIndices[i];
+        for (int i = 0; i < face->mNumIndices; i++)		// go through all vertices in face
+        {
+            int vertexIndex = face->mIndices[i];	// get group index for current index
             if (mesh->mColors[0] != NULL)
-                glColor4fv((GLfloat*)&mesh->mColors[0][index]);
+                Color4f(&mesh->mColors[0][vertexIndex]);
             if (mesh->mNormals != NULL)
-                glNormal3fv(&mesh->mNormals[index].x);
-            glVertex3fv(&mesh->mVertices[index].x);
-        }
 
-        //glEnd();
+                if (mesh->HasTextureCoords(0))		//HasTextureCoords(texture_coordinates_set)
+                {
+                    glTexCoord2f(mesh->mTextureCoords[0][vertexIndex].x, 1 - mesh->mTextureCoords[0][vertexIndex].y); //mTextureCoords[channel][vertex]
+                }
+
+            glNormal3fv(&mesh->mNormals[vertexIndex].x);
+            glVertex3fv(&mesh->mVertices[vertexIndex].x);
+        }
+        glEnd();
     }
 
 
@@ -1154,7 +1285,7 @@ void ClothDemo::displayCallback(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     renderme();
-    //renderscene();
+    renderscene();
     //renderSoftBodys();
     renderFluids();
     
@@ -1336,6 +1467,7 @@ void ClothDemo::myinit()
 
     //ScreenSpaceFluidRendererGL may initialize GLEW, which requires an existing OpenGL context
     if (!m_screenSpaceRenderer) m_screenSpaceRenderer = new ScreenSpaceFluidRendererGL(m_glutScreenWidth, m_glutScreenHeight);
+
 
 }
 
