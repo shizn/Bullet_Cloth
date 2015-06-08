@@ -26,20 +26,14 @@
 #include "GLDebugDrawer.h"
 
 //Assimp
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <stdio.h>
-#include <fstream>
-#include <string>
-#include <map>
-#include <IL/il.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <assimp/DefaultLogger.hpp>
-#include <assimp/LogStream.hpp>
 //Assimp
-
+//FreeImage
+#include <gl/glut.h>
+#include "TextureManager.h"
+//FreeImage
 //bunny
 #include "BunnyMesh.h"
 
@@ -83,25 +77,23 @@ class ClothDemo : public PlatformDemoApplication
     GLDebugDrawer m_debugDrawer;
 
     //Assimp
-    // images / texture
-    std::map<std::string, GLuint*> textureIdMap;	// map image filenames to textureIds
-    GLuint*		textureIds;							// pointer to texture Array
-
     // Create an instance of the Importer class
     Assimp::Importer importer;
     const aiScene* scene;
-    const aiMesh* mesh;
+    const aiMesh* meshBunny;
     float* vertexArray;
     float* normalArray;
     float* uvArray;
     int numTriangles;
     int numVertices;
-    int numIndices; 
-    std::string modelpath;
-
+    int numIndices;
     btScalar *gVertices;
     int *gIndices;
     //Assimp
+
+    //FreeImage
+    GLuint texture[1];
+    //FreeImage
 
 public:
 
@@ -115,9 +107,6 @@ public:
     virtual void clientMoveAndDisplay();	//Simulation is updated/stepped here
     virtual void displayCallback();			//Rendering occurs here
 
-
-    int LoadGLTextures(const aiScene* scene);
-    void renderscene();
     void renderFluids();
     void renderSoftBodys();
     void processClothDiffusion();
@@ -132,6 +121,11 @@ public:
     //Assimp
     bool ImportObjMesh(const std::string& pFile);
     //Assimp
+
+    //FreeImage
+    bool InitFreeImage();
+    void display();
+    //FreeImage
 
     static DemoApplication* Create()
     {

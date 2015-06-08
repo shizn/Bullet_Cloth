@@ -41,7 +41,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\assimp-3.1.1-win-binaries\include;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\src;$(IncludePath)</IncludePath>
+    <IncludePath>D:\FreeImage\Dist\x32;D:\assimp-3.1.1-win-binaries\include;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\src;$(IncludePath)</IncludePath>
     <LibraryPath>D:\assimp-3.1.1-win-binaries\lib\Debug;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -57,13 +57,13 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>D:\DevIL-SDK-x86-1.7.8\include;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\src;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\src;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;assimpd.lib;glew64s.lib;glut32.lib;glut64.lib;BulletCollision_vs2010_debug.lib;BulletDynamics_vs2010_debug.lib;BulletFluids_vs2010_debug.lib;BulletSoftBody_vs2010_debug.lib;BulletSoftBodyDX11Solvers_vs2010_debug.lib;ConvexDecomposition_vs2010_debug.lib;HACD_vs2010_debug.lib;LinearMath_vs2010_debug.lib;OpenGLSupport_vs2010_debug.lib;DevIL.lib;ILU.lib;ILUT.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\DevIL-SDK-x86-1.7.8\lib;D:\Bullet\bullet-2.81-rev2613\Glut;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;assimpd.lib;glew64s.lib;glut32.lib;glut64.lib;BulletCollision_vs2010_debug.lib;BulletDynamics_vs2010_debug.lib;BulletFluids_vs2010_debug.lib;BulletSoftBody_vs2010_debug.lib;BulletSoftBodyDX11Solvers_vs2010_debug.lib;ConvexDecomposition_vs2010_debug.lib;HACD_vs2010_debug.lib;LinearMath_vs2010_debug.lib;OpenGLSupport_vs2010_debug.lib;FreeImage.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\FreeImage\Dist\x32;D:\Bullet\bullet-2.81-rev2613\Glut;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -75,7 +75,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;_HAS_EXCEPTIONS=0;GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\DevIL-SDK-x86-1.7.8\include;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\src;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\FreeImage\Dist\x32;D:\Bullet\bullet-2.81-rev2613\Glut;D:\Bullet\bullet-2.81-rev2613\src;D:\Bullet\bullet-2.81-rev2613\Demos\OpenGL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -88,8 +88,8 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;assimp.lib;glew64s.lib;glut32.lib;glut64.lib;BulletCollision_vs2010.lib;BulletDynamics_vs2010.lib;BulletFluids_vs2010.lib;BulletSoftBody_vs2010.lib;BulletSoftBodyDX11Solvers_vs2010.lib;ConvexDecomposition_vs2010.lib;HACD_vs2010.lib;LinearMath_vs2010.lib;OpenGLSupport_vs2010.lib;ILUT.lib;ILU.lib;DevIL.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\DevIL-SDK-x86-1.7.8\lib;D:\Bullet\bullet-2.81-rev2613\Glut;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32s.lib;assimp.lib;glew64s.lib;glut32.lib;glut64.lib;BulletCollision_vs2010.lib;BulletDynamics_vs2010.lib;BulletFluids_vs2010.lib;BulletSoftBody_vs2010.lib;BulletSoftBodyDX11Solvers_vs2010.lib;ConvexDecomposition_vs2010.lib;HACD_vs2010.lib;LinearMath_vs2010.lib;OpenGLSupport_vs2010.lib;FreeImage.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\FreeImage\Dist\x32;D:\Bullet\bullet-2.81-rev2613\Glut;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
@@ -101,6 +101,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MarchingCubes.cpp" />
     <ClCompile Include="ScreenSpaceFluidRendererGL.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="btFluidSoftRigidCollisionConfiguration.h" />
@@ -111,6 +112,7 @@
     <ClInclude Include="FrameBufferGL.h" />
     <ClInclude Include="MarchingCubes.h" />
     <ClInclude Include="ScreenSpaceFluidRendererGL.h" />
+    <ClInclude Include="TextureManager.h" />
     <ClInclude Include="tubeTriangleMesh.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

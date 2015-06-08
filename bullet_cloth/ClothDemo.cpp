@@ -33,9 +33,9 @@ subject to the following restrictions:
 #include "tubeTriangleMesh.h"
 #endif
 
-#define SCENE1 0
-#define SCENE2 0
-#define SCENE3 1
+#define SCENE1 1
+#define SCENE2 1
+#define SCENE3 0
 
 ClothDemo::ClothDemo()
 {
@@ -55,208 +55,44 @@ ClothDemo::~ClothDemo()
 
     //Assimp need to be cleaned
 }
-
-void color4_to_float4(const aiColor4D *c, float f[4])
+bool ClothDemo::InitFreeImage()
 {
-    f[0] = c->r;
-    f[1] = c->g;
-    f[2] = c->b;
-    f[3] = c->a;
+    //将2D贴图状态打开
+
+
+    //单件贴图管理
+    //如果加载带路径的文件最好选用.\\这样的格式
+    TextureManager::Inst()->LoadTexture("E:/Projects/bullet_cloth/Release/textures.bmp", texture[0], GL_BGR_EXT);
+
+    //线性过滤一定要放到加载纹理的后面
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);    // 线性滤波
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);    // 线性滤波
+
+    glClearColor(0.5, 0.5, 0.5, 0.5);
+
+    return true;
 }
 
-void set_float4(float f[4], float a, float b, float c, float d)
+void ClothDemo::display()
 {
-    f[0] = a;
-    f[1] = b;
-    f[2] = c;
-    f[3] = d;
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //绑定纹理
+
+    TextureManager::Inst()->BindTexture(texture[0]);
+    glEnable(GL_TEXTURE_2D);
+    //渲染
+
+    glBegin(GL_QUADS);
+    glTexCoord2d(0, 0); glVertex3f(5.0f, 5.0f, 0.0f);
+    glTexCoord2d(0, 1); glVertex3f(5.0f, 15.0f, 0.0f);
+    glTexCoord2d(1, 1); glVertex3f(15.0f, 15.0f, 0.0f);
+    glTexCoord2d(1, 0); glVertex3f(15.0f, 5.0f, 0.0f);
+    glEnd();
+   // glFlush();
+
+    //glutSwapBuffers();
 }
-
-//GLboolean abortGLInit(const char*);
-
-std::string getBasePath(const std::string& path)
-{
-    size_t pos = path.find_last_of("\\/");
-    return (std::string::npos == pos) ? "" : path.substr(0, pos + 1);
-}
-int ClothDemo::LoadGLTextures(const aiScene* scene)
-{
-    ILboolean success;
-
-    /* Before calling ilInit() version should be checked. */
-    if (ilGetInteger(IL_VERSION_NUM) < IL_VERSION)
-    {
-        /// wrong DevIL version ///
-        std::string err_msg = "Wrong DevIL version. Old devil.dll in system32/SysWow64?";
-        char* cErr_msg = (char *)err_msg.c_str();
-        //abortGLInit(cErr_msg);
-        return -1;
-    }
-
-    ilInit(); /* Initialization of DevIL */
-
-    if (scene->HasTextures())
-    {
-        //abortGLInit("Support for meshes with embedded textures is not implemented");
-    }
-    /* getTexture Filenames and Numb of Textures */
-    for (unsigned int m = 0; m<scene->mNumMaterials; m++)
-    {
-        int texIndex = 0;
-        aiReturn texFound = AI_SUCCESS;
-
-        aiString path;	// filename
-
-        while (texFound == AI_SUCCESS)
-        {
-            texFound = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, texIndex, &path);
-            textureIdMap[path.data] = NULL; //fill map with textures, pointers still NULL yet
-            texIndex++;
-        }
-    }
-
-    int numTextures = textureIdMap.size();
-
-    /* array with DevIL image IDs */
-    ILuint* imageIds = NULL;
-    imageIds = new ILuint[numTextures];
-
-    /* generate DevIL Image IDs */
-    ilGenImages(numTextures, imageIds); /* Generation of numTextures image names */
-
-    /* create and fill array with GL texture ids */
-    textureIds = new GLuint[numTextures];
-    glGenTextures(numTextures, textureIds); /* Texture name generation */
-
-    /* get iterator */
-    std::map<std::string, GLuint*>::iterator itr = textureIdMap.begin();
-
-    std::string basepath = getBasePath(modelpath);
-    for (int i = 0; i<numTextures; i++)
-    {
-
-        //save IL image ID
-        std::string filename = (*itr).first;  // get filename
-        (*itr).second = &textureIds[i];	  // save texture id for filename in map
-        itr++;								  // next texture
-
-
-        ilBindImage(imageIds[i]); /* Binding of DevIL image name */
-        std::string fileloc = basepath + filename;	/* Loading of image */
-        success = ilLoadImage(fileloc.c_str());
-
-        if (success) /* If no error occured: */
-        {
-            // Convert every colour component into unsigned byte.If your image contains 
-            // alpha channel you can replace IL_RGB with IL_RGBA
-            success = ilConvertImage(IL_RGB, IL_UNSIGNED_BYTE);
-            if (!success)
-            {
-                /* Error occured */
-                //abortGLInit("Couldn't convert image");
-                return -1;
-            }
-            // Binding of texture name
-            glBindTexture(GL_TEXTURE_2D, textureIds[i]);
-            // redefine standard texture values
-            // We will use linear interpolation for magnification filter
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            // We will use linear interpolation for minifying filter
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            // Texture specification
-            glTexImage2D(GL_TEXTURE_2D, 0, ilGetInteger(IL_IMAGE_BPP), ilGetInteger(IL_IMAGE_WIDTH),
-                ilGetInteger(IL_IMAGE_HEIGHT), 0, ilGetInteger(IL_IMAGE_FORMAT), GL_UNSIGNED_BYTE,
-                ilGetData());
-            // we also want to be able to deal with odd texture dimensions
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-            glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-            glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-        }
-        else
-        {
-            /* Error occured */
-            ILenum error;
-            error = ilGetError();
-            MessageBox(NULL, ("Couldn't load Image: " + fileloc).c_str(), "ERROR", MB_OK | MB_ICONEXCLAMATION);
-        }
-    }
-    // Because we have already copied image data into texture data  we can release memory used by image.
-    ilDeleteImages(numTextures, imageIds);
-
-    // Cleanup
-    delete[] imageIds;
-    imageIds = NULL;
-
-    return TRUE;
-}
-
-
-void apply_material(const aiMaterial *mtl)
-{
-    float c[4];
-
-    GLenum fill_mode;
-    int ret1, ret2;
-    aiColor4D diffuse;
-    aiColor4D specular;
-    aiColor4D ambient;
-    aiColor4D emission;
-    float shininess, strength;
-    int two_sided;
-    int wireframe;
-    unsigned int max;
-
-    set_float4(c, 0.8f, 0.8f, 0.8f, 1.0f);
-    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &diffuse))
-        color4_to_float4(&diffuse, c);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, c);
-
-    set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
-    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &specular))
-        color4_to_float4(&specular, c);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, c);
-
-    set_float4(c, 0.2f, 0.2f, 0.2f, 1.0f);
-    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &ambient))
-        color4_to_float4(&ambient, c);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, c);
-
-    set_float4(c, 0.0f, 0.0f, 0.0f, 1.0f);
-    if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_EMISSIVE, &emission))
-        color4_to_float4(&emission, c);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, c);
-
-    max = 1;
-    ret1 = aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS, &shininess, &max);
-    if (ret1 == AI_SUCCESS) {
-        max = 1;
-        ret2 = aiGetMaterialFloatArray(mtl, AI_MATKEY_SHININESS_STRENGTH, &strength, &max);
-        if (ret2 == AI_SUCCESS)
-            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess * strength);
-        else
-            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-    }
-    else {
-        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 0.0f);
-        set_float4(c, 0.0f, 0.0f, 0.0f, 0.0f);
-        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, c);
-    }
-
-    max = 1;
-    if (AI_SUCCESS == aiGetMaterialIntegerArray(mtl, AI_MATKEY_ENABLE_WIREFRAME, &wireframe, &max))
-        fill_mode = wireframe ? GL_LINE : GL_FILL;
-    else
-        fill_mode = GL_FILL;
-    glPolygonMode(GL_FRONT_AND_BACK, fill_mode);
-
-    max = 1;
-    if ((AI_SUCCESS == aiGetMaterialIntegerArray(mtl, AI_MATKEY_TWOSIDED, &two_sided, &max)) && two_sided)
-        glDisable(GL_CULL_FACE);
-    else
-        glEnable(GL_CULL_FACE);
-}
-
 
 
 bool ClothDemo::ImportObjMesh(const std::string& pFile)
@@ -278,12 +114,11 @@ bool ClothDemo::ImportObjMesh(const std::string& pFile)
     }
     else
     {
-        mesh = scene->mMeshes[0];
+        aiMesh* mesh = scene->mMeshes[0];
         
         numTriangles = mesh->mNumFaces;
         numVertices = mesh->mNumVertices;
         numIndices = numTriangles * 3;
-        
         
         gVertices = new btScalar[numVertices * 3];
 
@@ -302,14 +137,6 @@ bool ClothDemo::ImportObjMesh(const std::string& pFile)
             gIndices[i + 1] = mesh->mFaces[j].mIndices[1];
             gIndices[i + 2] = mesh->mFaces[j].mIndices[2];
         }
-
-
-
-
-        //Material
-        //Try tutorial render method
-
-
 
         /*
         gIndices = new int *[numTriangles];
@@ -462,10 +289,10 @@ void ClothDemo::initPhysics()
             FL.m_aabbBoundaryMax = btVector3(AABB_EXTENT, AABB_EXTENT*2, AABB_EXTENT);
             FL.m_enableAabbBoundary = 1;
             //FL.m_particleMass = btScalar(0.001);	//Mass of particles when colliding with rigid/soft bodies; def 0.00020543
-            FL.m_boundaryErp = btScalar(0.375);	//Increase m_boundaryErp to reduce penetration at the cost of increased jitter; def 0.0375
-            FL.m_particleDist = 0.2;
-            FL.m_particleRadius = 0.8;
-            FL.m_surfaceTension = 0.8;
+            //FL.m_boundaryErp = btScalar(0.375);	//Increase m_boundaryErp to reduce penetration at the cost of increased jitter; def 0.0375
+            //FL.m_particleDist = 0.2;
+            //FL.m_particleRadius = 0.8;
+            //FL.m_surfaceTension = 0.8;
             
             fluidSph->setLocalParameters(FL);
 
@@ -485,7 +312,7 @@ void ClothDemo::initPhysics()
         const btScalar POSITION_Y(20.0);
         const btScalar EXTENT(30.0);
 
-        const int RESOLUTION = 40;
+        const int RESOLUTION = 50;
 
 #ifndef USE_TUBE_MESH_FOR_SOFT_BODY		
         btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(), 
@@ -519,12 +346,13 @@ void ClothDemo::initPhysics()
         softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
         //ssxx draw flag
         m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
-        softBody->m_faces[30].m_absorb = 100.0;
+        //softBody->m_faces[30].m_absorb = 100.0;
         //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
 
     //Create a soft-body cloth patch 2
+    /*
     if (SCENE2)
     {
         const btScalar POSITION_Y(40.0);
@@ -551,12 +379,12 @@ void ClothDemo::initPhysics()
         softBody->generateBendingConstraints(2, material);
         softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
         //ssxx draw flag
-        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::Clusters);
+        m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
         //softBody->m_faces[30].m_absorb = 10.0;
         //ssxx
         m_fluidSoftRigidWorld->addSoftBody(softBody);
     }
-    
+    */
     //import human body
     if (SCENE3)
     {
@@ -583,9 +411,8 @@ void ClothDemo::initPhysics()
         //psb->m_faces[30].m_absorb = 100.0;
         m_fluidSoftRigidWorld->addSoftBody(psb);
         */
-        modelpath = "E:/Projects/bullet_cloth/Release/bunny_m.obj";
-        ImportObjMesh(modelpath);
-        LoadGLTextures(scene);
+        
+        ImportObjMesh("E:/Projects/bullet_cloth/Release/bunny_patched.obj");
         btSoftBody* psb = btSoftBodyHelpers::CreateFromTriMesh(m_fluidSoftRigidWorld->getWorldInfo(),
             gVertices,&gIndices[0],numTriangles);
         btSoftBody::Material*	pm = psb->appendMaterial();
@@ -629,7 +456,7 @@ void ClothDemo::initPhysics()
         }
         //emitParticle(m_fluidSph, btVector3(uniform_real(10.0, 30.0), uniform_real(0.0, 20.0), uniform_real(-10.0, -30.0)), btVector3(0.0, 0.0, 0.0));
         
-
+        InitFreeImage();
     }
 }
 
@@ -684,35 +511,34 @@ void ClothDemo::clientMoveAndDisplay()
     {
         static int counter = 0;
         static int fluidcounter = 0;
-        if (++counter > 1)
+        if (++counter > 3)
         {
             //ounter = 0;
             //ssxx
             //add fluids here
-            if (SCENE1)
-            if (m_fluidSph && (++fluidcounter<500))
+            if (SCENE1 && counter<1500)
+            if (m_fluidSph && (++fluidcounter))
             {
-                emitParticle(m_fluidSph, btVector3(0.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(0.0, 50.0, 2.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(2.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, -2.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(2.0, 50.0, 2.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, 0.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(0.0, 50.0, -2.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(2.0, 50.0, -2.0), btVector3(0.0, -1.0, 0.0));
-                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, 2.0), btVector3(0.0, -1.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(0.0, 50.0, 0.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(0.0, 50.0, 2.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(2.0, 50.0, 0.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, -2.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(2.0, 50.0, 2.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, 0.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(0.0, 50.0, -2.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(2.0, 50.0, -2.0), btVector3(0.0, -2.0, 0.0));
+                emitParticle(m_fluidSph, btVector3(-2.0, 50.0, 2.0), btVector3(0.0, -2.0, 0.0));
             }
-            if (SCENE1 && counter == 600)
+            if (SCENE2 && counter==1700)
             {
-                //create another cloth patch
                 const btScalar POSITION_Y(40.0);
                 const btScalar EXTENT(10.0);
-                const int RESOLUTION = 40;
+                const int RESOLUTION = 30;
                 btSoftBody* softBody = btSoftBodyHelpers::CreatePatch(m_fluidSoftRigidWorld->getWorldInfo(),
-                    btVector3(-EXTENT, POSITION_Y, -EXTENT - 15),
-                    btVector3(EXTENT, POSITION_Y, -EXTENT - 15),
-                    btVector3(-EXTENT, POSITION_Y, EXTENT - 15),
-                    btVector3(EXTENT, POSITION_Y, EXTENT - 15),
+                    btVector3(-EXTENT, POSITION_Y, -EXTENT - 25),
+                    btVector3(EXTENT, POSITION_Y, -EXTENT - 25),
+                    btVector3(-EXTENT, POSITION_Y, EXTENT - 25),
+                    btVector3(EXTENT, POSITION_Y, EXTENT - 25),
                     RESOLUTION, RESOLUTION, 0, true);
 
                 btSoftBody::Material* material = softBody->appendMaterial();
@@ -729,7 +555,7 @@ void ClothDemo::clientMoveAndDisplay()
                 softBody->generateBendingConstraints(2, material);
                 softBody->generateClusters(0); 	//Pass zero in generateClusters to create a cluster for each tetrahedron or triangle
                 //ssxx draw flag
-                //m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::Clusters);
+                m_fluidSoftRigidWorld->setDrawFlags(fDrawFlags::SsxxCustom);
                 //softBody->m_faces[30].m_absorb = 10.0;
                 //ssxx
                 m_fluidSoftRigidWorld->addSoftBody(softBody);
@@ -1148,64 +974,6 @@ void drawTriangle(const btSoftBody::Node* x1, const btSoftBody::Node* x2, const 
 
 }
 
-void Color4f(const aiColor4D *color)
-{
-    glColor4f(color->r, color->g, color->b, color->a);
-}
-
-void ClothDemo::renderscene()
-{
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBegin(GL_TRIANGLES);
-    glDepthMask(GL_FALSE);
-
-    apply_material(scene->mMaterials[mesh->mMaterialIndex]);
-    if (mesh->mNormals == NULL) {
-        glDisable(GL_LIGHTING);
-    }
-    else {
-        glEnable(GL_LIGHTING);
-    }
-    for (int t = 0; t < mesh->mNumFaces; ++t) {
-        const struct aiFace* face = &mesh->mFaces[t];
-        GLenum face_mode;
-
-        switch (face->mNumIndices)
-        {
-        case 1: face_mode = GL_POINTS; break;
-        case 2: face_mode = GL_LINES; break;
-        case 3: face_mode = GL_TRIANGLES; break;
-        default: face_mode = GL_POLYGON; break;
-        }
-
-        glBegin(face_mode);
-
-        for (int i = 0; i < face->mNumIndices; i++)		// go through all vertices in face
-        {
-            int vertexIndex = face->mIndices[i];	// get group index for current index
-            if (mesh->mColors[0] != NULL)
-                Color4f(&mesh->mColors[0][vertexIndex]);
-            if (mesh->mNormals != NULL)
-
-                if (mesh->HasTextureCoords(0))		//HasTextureCoords(texture_coordinates_set)
-                {
-                    glTexCoord2f(mesh->mTextureCoords[0][vertexIndex].x, 1 - mesh->mTextureCoords[0][vertexIndex].y); //mTextureCoords[channel][vertex]
-                }
-
-            glNormal3fv(&mesh->mNormals[vertexIndex].x);
-            glVertex3fv(&mesh->mVertices[vertexIndex].x);
-        }
-        glEnd();
-    }
-
-
-    glDisable(GL_BLEND);
-    glEnd();
-    glDepthMask(GL_TRUE);
-}
-
 void ClothDemo::renderSoftBodys(void)
 {
     btAlignedObjectArray<btSoftBody*> softBodies = m_fluidSoftRigidWorld->getSoftBodyArray();
@@ -1285,10 +1053,9 @@ void ClothDemo::displayCallback(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     renderme();
-    renderscene();
-    //renderSoftBodys();
+    renderSoftBodys();
     renderFluids();
-    
+    //display();
     if (SCENE3)
     {
         //renderImportMesh(vertexArray, normalArray, numVerts);
@@ -1331,6 +1098,8 @@ void ClothDemo::displayCallback(void)
         }
     }
     */
+
+    
     btIDebugDraw* debugDrawer = m_fluidSoftRigidWorld->getDebugDrawer();
     //Draw soft bodies
     if (debugDrawer && !(debugDrawer->getDebugMode() & btIDebugDraw::DBG_DrawWireframe))
@@ -1362,9 +1131,9 @@ void ClothDemo::displayCallback(void)
         resetPerspectiveProjection();
         glEnable(GL_LIGHTING);
     }
-
+    
     glFlush();
-    swapBuffers();
+    glutSwapBuffers();
 }
 
 
@@ -1467,7 +1236,6 @@ void ClothDemo::myinit()
 
     //ScreenSpaceFluidRendererGL may initialize GLEW, which requires an existing OpenGL context
     if (!m_screenSpaceRenderer) m_screenSpaceRenderer = new ScreenSpaceFluidRendererGL(m_glutScreenWidth, m_glutScreenHeight);
-
 
 }
 
